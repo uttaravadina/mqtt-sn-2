@@ -1,0 +1,9 @@
+1. Finish discovery
+2. Finish DTLS
+3. Test plan
+4. Oversee test phase with QA
+5. Gateway monitoring service
+5. CLI to expose monitoring service
+6. WEB? to expose monitoring service
+7. Will implementation
+8. Forwarder packet implementation
