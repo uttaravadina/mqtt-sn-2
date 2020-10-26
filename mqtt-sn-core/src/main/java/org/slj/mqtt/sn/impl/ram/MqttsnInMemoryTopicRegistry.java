@@ -22,7 +22,7 @@
  * under the License.
  */
 
-package org.slj.mqtt.sn.impl;
+package org.slj.mqtt.sn.impl.ram;
 
 import org.slj.mqtt.sn.MqttsnConstants;
 import org.slj.mqtt.sn.model.IMqttsnContext;
@@ -38,7 +38,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.logging.Level;
 
-public class MqttsnTopicRegistry<T extends IMqttsnRuntimeRegistry>
+public class MqttsnInMemoryTopicRegistry<T extends IMqttsnRuntimeRegistry>
         extends MqttsnService<T>
         implements IMqttsnTopicRegistry<T> {
 

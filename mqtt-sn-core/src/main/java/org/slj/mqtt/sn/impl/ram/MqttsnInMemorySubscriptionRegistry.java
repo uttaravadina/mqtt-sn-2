@@ -22,7 +22,7 @@
  * under the License.
  */
 
-package org.slj.mqtt.sn.impl;
+package org.slj.mqtt.sn.impl.ram;
 
 import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.spi.MqttsnException;
@@ -32,7 +32,7 @@ import org.slj.mqtt.sn.utils.TopicPath;
 
 import java.util.*;
 
-public class MqttsnSubscriptionRegistry<T extends IMqttsnRuntimeRegistry>
+public class MqttsnInMemorySubscriptionRegistry<T extends IMqttsnRuntimeRegistry>
         extends MqttsnService<T>
         implements IMqttsnSubscriptionRegistry<T> {
 

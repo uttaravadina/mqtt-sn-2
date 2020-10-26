@@ -131,11 +131,11 @@ public abstract class AbstractMqttsnRuntime {
         System.setProperty("java.util.logging.SimpleFormatter.format", "[%1$tc] %4$s %2$s - %5$s %6$s%n");
     }
 
-    protected void messageReceived(IMqttsnContext context, String topicName, int QoS, byte[] payload){
+    public void messageReceived(IMqttsnContext context, String topicName, int QoS, byte[] payload){
         logger.log(Level.INFO, String.format("publish received by application [%s]", topicName));
     }
 
-    protected void disconnectReceived(IMqttsnContext context){
+    public void disconnectReceived(IMqttsnContext context){
         logger.log(Level.INFO, String.format("unsolicited disconnected received by application"));
     }
 }

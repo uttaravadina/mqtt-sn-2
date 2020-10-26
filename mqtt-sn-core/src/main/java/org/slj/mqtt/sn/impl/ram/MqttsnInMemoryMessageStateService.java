@@ -22,10 +22,11 @@
  * under the License.
  */
 
-package org.slj.mqtt.sn.impl;
+package org.slj.mqtt.sn.impl.ram;
 
 import org.slj.mqtt.sn.MqttsnConstants;
 import org.slj.mqtt.sn.codec.MqttsnCodecException;
+import org.slj.mqtt.sn.impl.AbstractMqttsnBackoffThreadService;
 import org.slj.mqtt.sn.model.*;
 import org.slj.mqtt.sn.spi.*;
 import org.slj.mqtt.sn.utils.MqttsnUtils;
@@ -35,7 +36,7 @@ import org.slj.mqtt.sn.wire.version1_2.payload.MqttsnPubrel;
 import java.util.*;
 import java.util.logging.Level;
 
-public class MqttsnMessageStateService<T extends IMqttsnRuntimeRegistry>
+public class MqttsnInMemoryMessageStateService<T extends IMqttsnRuntimeRegistry>
         extends AbstractMqttsnBackoffThreadService<T> implements IMqttsnMessageStateService<T> {
 
     protected static final Integer WEAK_ATTACH_ID = new Integer(MqttsnConstants.USIGNED_MAX_16 + 1);

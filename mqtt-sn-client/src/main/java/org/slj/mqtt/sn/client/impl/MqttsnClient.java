@@ -197,12 +197,12 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     }
 
     @Override
-    protected void messageReceived(IMqttsnContext context, String topicName, int QoS, byte[] payload) {
+    public void messageReceived(IMqttsnContext context, String topicName, int QoS, byte[] payload) {
         listeners.stream().forEach(p -> p.receive(topicName, QoS, payload));
     }
 
     @Override
-    protected void disconnectReceived(IMqttsnContext context) {
+    public void disconnectReceived(IMqttsnContext context) {
         try {
             logger.log(Level.SEVERE, String.format("unsolicited disconnect received from gateway [%s]", context));
             if(state != null){

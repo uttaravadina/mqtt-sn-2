@@ -22,7 +22,7 @@
  * under the License.
  */
 
-package org.slj.mqtt.sn.impl;
+package org.slj.mqtt.sn.impl.ram;
 
 import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.MqttsnWaitToken;
@@ -32,7 +32,7 @@ import org.slj.mqtt.sn.spi.*;
 import java.util.*;
 import java.util.logging.Level;
 
-public class MqttsnMessageQueue<T extends IMqttsnRuntimeRegistry>
+public class MqttsnInMemoryMessageQueue<T extends IMqttsnRuntimeRegistry>
         extends MqttsnService<T> implements IMqttsnMessageQueue<T> {
 
     protected Map<IMqttsnContext, Queue<QueuedPublishMessage>> queues;

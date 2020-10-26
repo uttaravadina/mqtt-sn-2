@@ -33,6 +33,10 @@ import org.slj.mqtt.sn.gateway.spi.gateway.IMqttsnGatewayAdvertiseService;
 import org.slj.mqtt.sn.gateway.spi.gateway.IMqttsnGatewayRuntimeRegistry;
 import org.slj.mqtt.sn.gateway.spi.gateway.IMqttsnGatewaySessionRegistryService;
 import org.slj.mqtt.sn.impl.*;
+import org.slj.mqtt.sn.impl.ram.MqttsnInMemoryMessageQueue;
+import org.slj.mqtt.sn.impl.ram.MqttsnInMemoryMessageStateService;
+import org.slj.mqtt.sn.impl.ram.MqttsnInMemorySubscriptionRegistry;
+import org.slj.mqtt.sn.impl.ram.MqttsnInMemoryTopicRegistry;
 import org.slj.mqtt.sn.model.MqttsnOptions;
 import org.slj.mqtt.sn.spi.MqttsnRuntimeException;
 
@@ -48,10 +52,10 @@ public class MqttsnGatewayRuntimeRegistry extends AbstractMqttsnRuntimeRegistry 
                 withGatewaySessionService(new MqttsnGatewaySessionService()).
                 withGatewayAdvertiseService(new MqttsnGatewayAdvertiseService()).
                 withMessageHandler(new MqttsnGatewayMessageHandler()).
-                withMessageQueue(new MqttsnMessageQueue()).
-                withTopicRegistry(new MqttsnTopicRegistry()).
-                withSubscriptionRegistry(new MqttsnSubscriptionRegistry()).
-                withMessageStateService(new MqttsnMessageStateService());
+                withMessageQueue(new MqttsnInMemoryMessageQueue()).
+                withTopicRegistry(new MqttsnInMemoryTopicRegistry()).
+                withSubscriptionRegistry(new MqttsnInMemorySubscriptionRegistry()).
+                withMessageStateService(new MqttsnInMemoryMessageStateService());
         return registry;
     }
 
