@@ -21,7 +21,6 @@ Module | Language & Build | Dependencies | Description
 [mqtt-sn-core-sec](/mqtt-sn-core-sec) | Java 1.8, Maven | Optional | DTLS implementation of the transport layer to add a secure datagram socket to a broker & client runtime **NOTE: This project is still work in progress will in the short term fail compilation**
 [mqtt-sn-client](/mqtt-sn-client) | Java 1.8, Maven | Client | A lightweight client with example transport implementations. Exposes both a simple blocking API and an aysnc publish API to the application and hides the complexities of topic registrations and connection management.
 [mqtt-sn-gateway](/mqtt-sn-gateway) | Java 1.8, Maven | Gateway | The core gateway runtime. The end goal is to provide all 3 variants of the gateway (Aggregating, Transparent & Forwarder) where possible. I have started with the aggregating gateway, since this is the most complex, and the most suitable for larger scale deployment.
-[mqtt-sn-gateway-udp](/mqtt-sn-gateway-udp) | Java 1.8, Maven | Gateway | UDP transport implementation, with PAHO based broker connector. Run from a Jar or as an embedded server.
 [mqtt-sn-gateway-artefact](/mqtt-sn-gateway-artefact) | Java 1.8, Maven | Optional | Simple runtime implementation of UDP aggregating gateway with a shaded jar build
 [mqtt-sn-gateway-vertx](/mqtt-sn-gateway-vertx) | Java 1.8, Maven | Optional | Bootstrapping a UDP gateway runtime into a vertx vertical
 [mqtt-sn-codec-netty](/mqtt-sn-codec-netty) | Java 1.8, Maven | Optional | Binding of the codecs into Netty codecs for use in a Netty runtime
