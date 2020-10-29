@@ -1,5 +1,5 @@
 <p align="center">
-![](/images/waves-400px.png)
+![i](/images/waves-400px.png)
 </p>
 
 # MQTT For Small Things (SN)
