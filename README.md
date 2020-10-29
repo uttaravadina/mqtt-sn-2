@@ -18,7 +18,7 @@ Module | Language & Build | Dependencies | Description
 ------------ | ------------- | ------------- | -------------
 [mqtt-sn-codec](/mqtt-sn-codec) | Java 1.8, Maven | **Mandatory** | Pure java message parsers and writers. Includes interfaces and abstractions to support future versions of the protocol.
 [mqtt-sn-core](/mqtt-sn-core) | Java 1.8, Maven | **Mandatory** | Shared interfaces and abstractions for use in the various MQTT-SN runtimes
-[mqtt-sn-core-sec](/mqtt-sn-core-sec) | Java 1.8, Maven | Optional | DTLS implementation of the transport layer to add a secure datagram socket to a broker & client runtime 
+[mqtt-sn-core-sec](/mqtt-sn-core-sec) | Java 1.8, Maven | Optional | DTLS implementation of the transport layer to add a secure datagram socket to a broker & client runtime **NOTE: This project is still work in progress will in the short term fail compilation**
 [mqtt-sn-client](/mqtt-sn-client) | Java 1.8, Maven | Client | A lightweight client with example transport implementations. Exposes both a simple blocking API and an aysnc publish API to the application and hides the complexities of topic registrations and connection management.
 [mqtt-sn-gateway](/mqtt-sn-gateway) | Java 1.8, Maven | Gateway | The core gateway runtime. The end goal is to provide all 3 variants of the gateway (Aggregating, Transparent & Forwarder) where possible. I have started with the aggregating gateway, since this is the most complex, and the most suitable for larger scale deployment.
 [mqtt-sn-gateway-udp](/mqtt-sn-gateway-udp) | Java 1.8, Maven | Gateway | UDP transport implementation, with PAHO based broker connector. Run from a Jar or as an embedded server.
