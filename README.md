@@ -1,5 +1,6 @@
-
-![f](/images/waves-400px.png)
+<p align="center">
+![](/images/waves-400px.png)
+</p>
 
 # MQTT For Small Things (SN)
 MQTT-SN is an optimized version of the MQTT specification designed for use on small, low powered, sensor devices, often running on the edge of the network; typical of the IoT.
