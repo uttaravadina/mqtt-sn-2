@@ -46,7 +46,7 @@ public class MqttsnSessionState implements IMqttsnSessionState {
     }
 
     @Override
-    public MqttsnClientState getSessionState() {
+    public MqttsnClientState getClientState() {
         return state;
     }
 
@@ -54,7 +54,7 @@ public class MqttsnSessionState implements IMqttsnSessionState {
         this.context = context;
     }
 
-    public void setSessionState(MqttsnClientState state) {
+    public void setClientState(MqttsnClientState state) {
         this.state = state;
     }
 

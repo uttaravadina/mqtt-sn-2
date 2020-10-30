@@ -38,8 +38,12 @@ public class MqttsnClientRuntimeRegistry extends AbstractMqttsnRuntimeRegistry i
 
     protected IMqttsnClientQueueService queueService;
 
+    public MqttsnClientRuntimeRegistry(MqttsnOptions options){
+        super(options);
+    }
+
     public static MqttsnClientRuntimeRegistry defaultConfiguration(MqttsnOptions options){
-        MqttsnClientRuntimeRegistry registry = (MqttsnClientRuntimeRegistry) new MqttsnClientRuntimeRegistry().
+        MqttsnClientRuntimeRegistry registry = (MqttsnClientRuntimeRegistry) new MqttsnClientRuntimeRegistry(options).
                 withClientQueueService(new MqttsnClientQueueService()).
                 withMessageHandler(new MqttsnClientMessageHandler()).
                 withTopicRegistry(new MqttsnInMemoryTopicRegistry()).

@@ -69,8 +69,8 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
 
     protected void deamon_processMessages(IMqttsnSessionState state) {
         try {
-            if(state.getSessionState() == MqttsnClientState.CONNECTED ||
-                    state.getSessionState() == MqttsnClientState.AWAKE){
+            if(state.getClientState() == MqttsnClientState.CONNECTED ||
+                    state.getClientState() == MqttsnClientState.AWAKE){
                 queueProcessor.process(state.getContext());
             }
         } catch(Exception e){
@@ -79,14 +79,14 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
     }
 
     protected void deamon_validateKeepAlive(IMqttsnSessionState state){
-        if(state.getSessionState() == MqttsnClientState.CONNECTED ||
-                state.getSessionState() == MqttsnClientState.ASLEEP){
+        if(state.getClientState() == MqttsnClientState.CONNECTED ||
+                state.getClientState() == MqttsnClientState.ASLEEP){
             long time = System.currentTimeMillis();
             if(state != null && state.getKeepAlive() > 0){
                 long lastSeen = state.getLastSeen().getTime();
                 if(lastSeen + (state.getKeepAlive() * 1000) < time){
                     logger.log(Level.WARNING, String.format("keep-alive deamon detected stale session for [%s], disconnecting", state.getContext()));
-                    state.setSessionState(MqttsnClientState.DISCONNECTED);
+                    state.setClientState(MqttsnClientState.DISCONNECTED);
                 }
             }
         }
@@ -124,7 +124,7 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
                         cleanSession(state.getContext());
                     }
                     state.setKeepAlive(keepAlive);
-                    state.setSessionState(MqttsnClientState.CONNECTED);
+                    state.setClientState(MqttsnClientState.CONNECTED);
                 }
             }
             logger.log(Level.INFO, String.format("handled connection request for [%s] with cleanSession [%s] -> [%s], [%s]", state.getContext(), cleanSession, result.getStatus(), result.getMessage()));
@@ -144,7 +144,7 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
             if(duration > 0){
                 logger.log(Level.INFO, String.format("[%s] setting client state asleep for [%s]", state.getContext(), duration));
                 state.setKeepAlive(duration);
-                state.setSessionState(MqttsnClientState.ASLEEP);
+                state.setClientState(MqttsnClientState.ASLEEP);
             } else {
                 logger.log(Level.INFO, String.format("[%s] disconnecting client", state.getContext()));
                 sessionLookup.remove(state.getContext());

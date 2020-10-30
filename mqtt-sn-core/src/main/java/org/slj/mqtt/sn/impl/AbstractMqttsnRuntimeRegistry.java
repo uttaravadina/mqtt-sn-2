@@ -53,6 +53,10 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
     protected IMqttsnMessageStateService messageStateService;
     protected List<IMqttsnTrafficListener> trafficListeners;
 
+    public AbstractMqttsnRuntimeRegistry(MqttsnOptions options){
+        setOptions(options);
+    }
+
     @Override
     public void init() {
         validateOnStartup();

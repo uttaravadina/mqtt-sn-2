@@ -40,6 +40,8 @@ public interface IMqttsnClient extends Closeable {
 
     void sleep(int keepAlive) throws MqttsnException;
 
+    void wake() throws MqttsnException;
+
     void disconnect() throws MqttsnException;
 
     void registerListener(IMqttsnPublishReceivedListener listener);

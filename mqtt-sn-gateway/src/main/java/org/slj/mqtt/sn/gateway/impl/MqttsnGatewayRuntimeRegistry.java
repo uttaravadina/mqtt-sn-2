@@ -47,8 +47,12 @@ public class MqttsnGatewayRuntimeRegistry extends AbstractMqttsnRuntimeRegistry 
     private IMqttsnBrokerConnectionFactory connectionFactory;
     private IMqttsnGatewaySessionRegistryService sessionService;
 
+    public MqttsnGatewayRuntimeRegistry(MqttsnOptions options){
+        super(options);
+    }
+
     public static MqttsnGatewayRuntimeRegistry defaultConfiguration(MqttsnOptions options){
-        MqttsnGatewayRuntimeRegistry registry = (MqttsnGatewayRuntimeRegistry) new MqttsnGatewayRuntimeRegistry().
+        MqttsnGatewayRuntimeRegistry registry = (MqttsnGatewayRuntimeRegistry) new MqttsnGatewayRuntimeRegistry(options).
                 withGatewaySessionService(new MqttsnGatewaySessionService()).
                 withGatewayAdvertiseService(new MqttsnGatewayAdvertiseService()).
                 withMessageHandler(new MqttsnGatewayMessageHandler()).

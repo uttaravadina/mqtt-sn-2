@@ -46,6 +46,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     private List<IMqttsnPublishReceivedListener> listeners;
 
     public MqttsnClient(){
+        listeners = Collections.synchronizedList(new ArrayList<>());
     }
 
     @Override
@@ -56,7 +57,6 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
             throw new MqttsnRuntimeException("unable to launch non-discoverable client without configured gateway");
         }
 
-        listeners = Collections.synchronizedList(new ArrayList<>());
         callStartup(registry.getMessageStateService());
         callStartup(registry.getMessageHandler());
         callStartup(registry.getMessageQueue());
@@ -78,13 +78,18 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         callShutdown(registry.getTopicRegistry());
     }
 
+    public IMqttsnSessionState getSessionState(){
+        return state;
+    }
+
     @Override
     public void connect(int keepAlive, boolean cleanSession) throws MqttsnException{
         IMqttsnSessionState state = checkSession(false);
-        if(state.getSessionState() != MqttsnClientState.CONNECTED){
-            IMqttsnMessage message = registry.getMessageFactory().createConnect(
-                    registry.getOptions().getContextId(), keepAlive, false, cleanSession);
-            synchronized (this){
+        synchronized (this) {
+            if (state.getClientState() != MqttsnClientState.CONNECTED) {
+                IMqttsnMessage message = registry.getMessageFactory().createConnect(
+                        registry.getOptions().getContextId(), keepAlive, false, cleanSession);
+
                 MqttsnWaitToken token = registry.getMessageStateService().sendMessage(state.getContext(), message);
                 Optional<IMqttsnMessage> response =
                         registry.getMessageStateService().waitForCompletion(state.getContext(), token);
@@ -140,20 +145,39 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     }
 
     @Override
+    public void wake()  throws MqttsnException{
+        IMqttsnSessionState state = checkSession(false);
+        IMqttsnMessage message = registry.getMessageFactory().createPingreq(null);
+        synchronized (this){
+            if(MqttsnUtils.in(state.getClientState(),
+                    MqttsnClientState.ASLEEP)){
+                MqttsnWaitToken token = registry.getMessageStateService().sendMessage(state.getContext(), message);
+                state.setClientState(MqttsnClientState.AWAKE);
+                ensureAwake();
+                Optional<IMqttsnMessage> response = registry.getMessageStateService().waitForCompletion(state.getContext(), token);
+                stateChangeResponseCheck(state, token, response, MqttsnClientState.ASLEEP);
+            } else {
+                throw new MqttsnExpectationFailedException("client connect wake from a non-connected state");
+            }
+        }
+    }
+
+    @Override
     public void disconnect()  throws MqttsnException {
         try {
             IMqttsnSessionState state = checkSession(false);
-            if(MqttsnUtils.in(state.getSessionState(),
-                    MqttsnClientState.CONNECTED, MqttsnClientState.ASLEEP, MqttsnClientState.AWAKE)){
-                IMqttsnMessage message = registry.getMessageFactory().createDisconnect();
-                synchronized (this) {
+            synchronized (this) {
+                if (MqttsnUtils.in(state.getClientState(),
+                        MqttsnClientState.CONNECTED, MqttsnClientState.ASLEEP, MqttsnClientState.AWAKE)) {
+                    IMqttsnMessage message = registry.getMessageFactory().createDisconnect();
                     registry.getMessageQueue().clear(state.getContext());
-                    MqttsnWaitToken token =  registry.getMessageStateService().sendMessage(state.getContext(), message);
+                    MqttsnWaitToken token = registry.getMessageStateService().sendMessage(state.getContext(), message);
                     Optional<IMqttsnMessage> response = registry.getMessageStateService().waitForCompletion(state.getContext(), token);
                     stateChangeResponseCheck(state, token, response, MqttsnClientState.DISCONNECTED);
+
+                } else if (MqttsnUtils.in(state.getClientState(), MqttsnClientState.PENDING)) {
+                    state.setClientState(MqttsnClientState.DISCONNECTED);
                 }
-            } else if(MqttsnUtils.in(state.getSessionState(), MqttsnClientState.PENDING)){
-                state.setSessionState(MqttsnClientState.DISCONNECTED);
             }
         } finally {
             pauseRuntime();
@@ -196,6 +220,10 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         }
     }
 
+    public String getClientId(){
+        return registry.getOptions().getContextId();
+    }
+
     @Override
     public void messageReceived(IMqttsnContext context, String topicName, int QoS, byte[] payload) {
         listeners.stream().forEach(p -> p.receive(topicName, QoS, payload));
@@ -207,7 +235,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
             logger.log(Level.SEVERE, String.format("unsolicited disconnect received from gateway [%s]", context));
             if(state != null){
                 if(state.getContext().equals(context)){
-                    state.setSessionState(MqttsnClientState.DISCONNECTED);
+                    state.setClientState(MqttsnClientState.DISCONNECTED);
                 }
             }
         } catch(Exception e){
@@ -221,7 +249,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
             MqttsnUtils.responseCheck(token, response);
             if(response.isPresent() &&
                     !response.get().isErrorMessage()){
-                sessionState.setSessionState(newState);
+                sessionState.setClientState(newState);
             }
         } catch(MqttsnExpectationFailedException e){
             logger.log(Level.SEVERE, "operation could not be completed, error in response");
@@ -237,7 +265,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
 
     protected MqttsnSessionState checkSession(boolean validate) throws MqttsnException {
         MqttsnSessionState state = getOrDiscoverGatewaySession();
-        if(validate && state.getSessionState() != MqttsnClientState.CONNECTED)
+        if(validate && state.getClientState() != MqttsnClientState.CONNECTED)
             throw new MqttsnRuntimeException("client not connected");
         return state;
     }

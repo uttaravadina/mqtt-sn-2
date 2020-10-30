@@ -44,11 +44,11 @@ public abstract class AbstractMqttsnRuntime {
     protected volatile boolean running = false;
     protected long startedAt;
 
-    public final void start(IMqttsnRuntimeRegistry reg, MqttsnOptions options) throws MqttsnException {
-        start(reg, options, false);
+    public final void start(IMqttsnRuntimeRegistry reg) throws MqttsnException {
+        start(reg, false);
     }
 
-    public final void start(IMqttsnRuntimeRegistry reg, MqttsnOptions options, boolean join) throws MqttsnException {
+    public final void start(IMqttsnRuntimeRegistry reg, boolean join) throws MqttsnException {
         if(runtimeLatch == null){
             startedAt = System.currentTimeMillis();
             setupEnvironment();
@@ -56,7 +56,6 @@ public abstract class AbstractMqttsnRuntime {
             startupLatch = new CountDownLatch(1);
             running = true;
             registry.setRuntime(this);
-            registry.setOptions(options);
             registry.init();
             bindShutdownHook();
             logger.log(Level.INFO, "starting mqttsn-environment..");

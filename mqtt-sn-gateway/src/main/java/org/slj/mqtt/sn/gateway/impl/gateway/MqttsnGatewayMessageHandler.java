@@ -46,7 +46,7 @@ public class MqttsnGatewayMessageHandler
 
     protected IMqttsnSessionState getSessionState(IMqttsnContext context) throws MqttsnException, MqttsnInvalidSessionStateException {
         IMqttsnSessionState state = registry.getGatewaySessionService().getSessionState(context, false);
-        if(state == null || state.getSessionState() == MqttsnClientState.DISCONNECTED)
+        if(state == null || state.getClientState() == MqttsnClientState.DISCONNECTED)
             throw new MqttsnInvalidSessionStateException("session not available for context");
         return state;
     }

@@ -56,7 +56,7 @@ public class Example {
         AtomicInteger receiveCounter = new AtomicInteger();
         CountDownLatch latch = new CountDownLatch(1);
         try (MqttsnClient client = new MqttsnClient()) {
-            client.start(registry, options);
+            client.start(registry);
             client.registerListener((String topic, int qos, byte[] data) -> {
                 receiveCounter.incrementAndGet();
                 System.err.println(String.format("received message [%s] [%s]",

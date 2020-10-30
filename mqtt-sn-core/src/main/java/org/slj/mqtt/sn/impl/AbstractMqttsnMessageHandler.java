@@ -65,7 +65,7 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
             case MqttsnConstants.REGISTER:
                 return new Class[]{ MqttsnRegack.class };
             case MqttsnConstants.PINGREQ:
-                return new Class[]{ MqttsnPingreq.class };
+                return new Class[]{ MqttsnPingresp.class };
             case MqttsnConstants.DISCONNECT:
                 return new Class[]{ MqttsnDisconnect.class };
             case MqttsnConstants.SEARCHGW:

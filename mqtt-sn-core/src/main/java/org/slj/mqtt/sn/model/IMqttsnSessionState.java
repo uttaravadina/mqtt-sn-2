@@ -30,7 +30,7 @@ public interface IMqttsnSessionState {
 
     IMqttsnContext getContext();
 
-    MqttsnClientState getSessionState();
+    MqttsnClientState getClientState();
 
     Date getLastSeen();
 
@@ -38,7 +38,7 @@ public interface IMqttsnSessionState {
 
     int getKeepAlive();
 
-    void setSessionState(MqttsnClientState state);
+    void setClientState(MqttsnClientState state);
 
     void setLastSeen(Date date);
 

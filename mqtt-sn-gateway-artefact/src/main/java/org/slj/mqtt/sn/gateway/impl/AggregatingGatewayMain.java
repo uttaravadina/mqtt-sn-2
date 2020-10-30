@@ -67,6 +67,6 @@ public class AggregatingGatewayMain {
                 withCodec(MqttsnCodecs.MQTTSN_CODEC_VERSION_1_2);
 
         MqttsnGateway gateway = new MqttsnGateway();
-        gateway.start(registry, gatewayOptions, true);
+        gateway.start(registry, true);
     }
 }
