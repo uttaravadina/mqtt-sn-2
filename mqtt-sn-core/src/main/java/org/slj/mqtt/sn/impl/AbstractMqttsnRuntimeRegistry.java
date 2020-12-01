@@ -51,6 +51,7 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
     protected IMqttsnTopicRegistry topicRegistry;
     protected IMqttsnSubscriptionRegistry subscriptionRegistry;
     protected IMqttsnMessageStateService messageStateService;
+    protected IMqttsnContextFactory contextFactory;
     protected List<IMqttsnTrafficListener> trafficListeners;
 
     public AbstractMqttsnRuntimeRegistry(MqttsnOptions options){
@@ -154,6 +155,15 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
         return trafficListeners;
     }
 
+    @Override
+    public IMqttsnContextFactory getContextFactory() {
+        return contextFactory;
+    }
+
+    public void setContextFactory(IMqttsnContextFactory contextFactory) {
+        this.contextFactory = contextFactory;
+    }
+
     public AbstractMqttsnRuntimeRegistry withTrafficListener(IMqttsnTrafficListener trafficListener){
         if(trafficListeners == null){
             synchronized (this){
@@ -163,6 +173,11 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
             }
         }
         trafficListeners.add(trafficListener);
+        return this;
+    }
+
+    public AbstractMqttsnRuntimeRegistry withContextFactory(IMqttsnContextFactory contextFactory){
+        this.contextFactory = contextFactory;
         return this;
     }
 
@@ -213,5 +228,6 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
         if(codec == null) throw new MqttsnRuntimeException("codec must be bound for valid runtime");
         if(messageHandler == null) throw new MqttsnRuntimeException("message handler must be bound for valid runtime");
         if(messageQueue == null) throw new MqttsnRuntimeException("message queue must be bound for valid runtime");
+        if(contextFactory == null) throw new MqttsnRuntimeException("context factory must be bound for valid runtime");
     }
 }

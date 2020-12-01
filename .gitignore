@@ -9,3 +9,11 @@
 codebuild_build.sh
 artifacts/
 target/
+/mqtt-sn-gateway-vertx/mqtt-sn-gateway-vertx.iml
+/mqtt-sn-gateway-artefact/mqtt-sn-gateway-artefact.iml
+/mqtt-sn-gateway/mqtt-sn-gateway.iml
+/mqtt-sn-core-sec/mqtt-sn-core-sec.iml
+/mqtt-sn-core/mqtt-sn-core.iml
+/mqtt-sn-codec-netty/mqtt-sn-codec-netty.iml
+/mqtt-sn-codec/mqtt-sn-codec.iml
+/mqtt-sn-client/mqtt-sn-client.iml

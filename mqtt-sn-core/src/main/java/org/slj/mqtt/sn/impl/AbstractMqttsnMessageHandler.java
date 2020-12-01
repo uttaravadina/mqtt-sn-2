@@ -265,19 +265,6 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
 
     protected abstract void afterHandle(IMqttsnContext context, IMqttsnMessage message, IMqttsnMessage response) throws MqttsnException;
 
-    @Override
-    public IMqttsnContext createContext(INetworkContext networkContext, IMqttsnMessage message) throws MqttsnException {
-        logger.log(Level.INFO,
-                String.format("attempting to identifier user and establish mqtt-sn context from [%s]", message));
-        if(message instanceof MqttsnConnect){
-            MqttsnContext context = new MqttsnContext(networkContext, ((MqttsnConnect)message).getClientId());
-            networkContext.setMqttsnContext(context);
-            registry.getNetworkRegistry().putContext(networkContext);
-            return context;
-        }
-        throw new MqttsnException("unable to create context message from non-connect packet");
-    }
-
     protected void handleResponse(IMqttsnContext context, IMqttsnMessage response)
             throws MqttsnException {
 

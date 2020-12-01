@@ -60,5 +60,7 @@ public interface IMqttsnRuntimeRegistry {
 
     IMqttsnSubscriptionRegistry getSubscriptionRegistry();
 
+    IMqttsnContextFactory getContextFactory();
+
     List<IMqttsnTrafficListener> getTrafficListeners();
 }

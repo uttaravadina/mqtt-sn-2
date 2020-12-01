@@ -76,11 +76,6 @@
             <version>1.0.0</version>
         </dependency>
         <dependency>
-            <groupId>org.slj</groupId>
-            <artifactId>mqtt-sn-gateway-udp</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-core</artifactId>
             <version>${vertx.version}</version>

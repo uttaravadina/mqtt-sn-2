@@ -29,9 +29,6 @@ import org.slj.mqtt.sn.model.INetworkContext;
 
 public interface IMqttsnMessageHandler {
 
-    IMqttsnContext createContext(INetworkContext networkContext, IMqttsnMessage message)
-            throws MqttsnException;
-
     void receiveMessage(IMqttsnContext context, IMqttsnMessage message)
             throws MqttsnException;
 

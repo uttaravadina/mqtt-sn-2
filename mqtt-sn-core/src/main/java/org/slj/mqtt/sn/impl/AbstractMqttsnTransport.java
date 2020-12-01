@@ -102,17 +102,18 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
         }
     }
 
-    protected void receiveFromTransport(INetworkContext context, IMqttsnMessage message) {
+    protected void receiveFromTransport(INetworkContext networkContext, IMqttsnMessage message) {
         try {
-            logger.log(Level.INFO, String.format("[%s] handling receive buffer from transport on thread [%s](%s)", context,
+            logger.log(Level.INFO, String.format("[%s] handling receive buffer from transport on thread [%s](%s)", networkContext,
                     Thread.currentThread().getName(), Thread.currentThread().getId()));
-            if(context.getMqttsnContext() == null || message instanceof MqttsnConnect){
-                IMqttsnContext mqttsnContext = registry.getMessageHandler().createContext(context, message);
+            if(networkContext.getMqttsnContext() == null || message instanceof MqttsnConnect){
+                IMqttsnContext mqttsnContext = registry.getContextFactory().createInitialContext(networkContext, message);
                 if(mqttsnContext != null){
-                    context.setMqttsnContext(mqttsnContext);
+                    networkContext.setMqttsnContext(mqttsnContext);
+                    registry.getNetworkRegistry().putContext(networkContext);
                 }
             }
-            registry.getMessageHandler().receiveMessage(context.getMqttsnContext(), message);
+            registry.getMessageHandler().receiveMessage(networkContext.getMqttsnContext(), message);
         } catch(MqttsnException e){
             logger.log(Level.SEVERE, "error encountered receiving message from transport", e);
         }
