@@ -227,7 +227,7 @@ public class MqttsnGatewayMessageHandler
 
     protected void processSessionResult(Result result){
         if(result.getStatus() != Result.STATUS.SUCCESS){
-            logger.log(Level.WARNING, String.format("error detected by session service [%s] -> [%s]", result.getMessage(), result.getReturnCode()));
+            logger.log(Level.WARNING, String.format("error detected by session service [%s]", result));
         }
     }
 }

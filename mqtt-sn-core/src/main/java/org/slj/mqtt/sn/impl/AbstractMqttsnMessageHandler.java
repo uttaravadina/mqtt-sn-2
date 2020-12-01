@@ -143,6 +143,11 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
 
         int msgType = message.getMessageType();
 
+        if(message.isErrorMessage()){
+            logger.log(Level.WARNING, String.format("mqtt-sn handler [%s] received error message [%s]",
+                    context, message));
+        }
+
         beforeHandle(context, message);
 
         IMqttsnMessage originatingMessage = null;

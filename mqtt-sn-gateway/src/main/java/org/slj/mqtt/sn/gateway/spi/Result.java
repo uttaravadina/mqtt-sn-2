@@ -81,4 +81,13 @@ public class Result {
     public boolean isError(){
         return STATUS.ERROR == status;
     }
+
+    @Override
+    public String toString() {
+        return "Result{" +
+                "status=" + status +
+                ", message='" + message + '\'' +
+                ", returnCode=" + returnCode +
+                '}';
+    }
 }

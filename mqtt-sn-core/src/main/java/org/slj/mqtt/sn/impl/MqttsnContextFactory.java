@@ -17,7 +17,7 @@ public class MqttsnContextFactory<T extends IMqttsnRuntimeRegistry>
     @Override
     public IMqttsnContext createInitialContext(INetworkContext networkContext, IMqttsnMessage message) throws MqttsnException {
         logger.log(Level.INFO,
-                String.format("attempting to identifier user and establish mqtt-sn context from [%s]", message));
+                String.format("attempting to identify user and establish mqtt-sn context from [%s]", message));
         if(message instanceof MqttsnConnect){
             MqttsnContext context = new MqttsnContext(networkContext, ((MqttsnConnect)message).getClientId());
             networkContext.setMqttsnContext(context);
