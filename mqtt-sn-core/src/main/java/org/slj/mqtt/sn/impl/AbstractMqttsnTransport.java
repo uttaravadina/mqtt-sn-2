@@ -84,21 +84,21 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
                 receiveFromTransport(context, message);
             }
         } finally {
-            notifyTrafficReceived(context, message);
+            notifyTrafficReceived(context, data, message);
         }
     }
 
-    private void notifyTrafficReceived(final INetworkContext context, IMqttsnMessage message) {
+    private void notifyTrafficReceived(final INetworkContext context, byte[] data, IMqttsnMessage message) {
         List<IMqttsnTrafficListener> list = getRegistry().getTrafficListeners();
         if(list != null && !list.isEmpty()){
-            list.stream().forEach(l -> l.trafficReceived(context, message));
+            list.stream().forEach(l -> l.trafficReceived(context, data, message));
         }
     }
 
-    private void notifyTrafficSent(final INetworkContext context, IMqttsnMessage message) {
+    private void notifyTrafficSent(final INetworkContext context, byte[] data, IMqttsnMessage message) {
         List<IMqttsnTrafficListener> list = getRegistry().getTrafficListeners();
         if(list != null && !list.isEmpty()){
-            list.stream().forEach(l -> l.trafficSent(context, message));
+            list.stream().forEach(l -> l.trafficSent(context, data, message));
         }
     }
 
@@ -120,16 +120,16 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
 
     @Override
     public void writeToTransport(IMqttsnContext context, IMqttsnMessage message) {
-        byte[] arr = registry.getCodec().encode(message);
+        byte[] data = registry.getCodec().encode(message);
         try {
             if(registry.getOptions().getThreadHandoffFromTransport()){
                 executorService.submit(
-                        () -> writeToTransportInternal(context, ByteBuffer.wrap(arr, 0 , arr.length)));
+                        () -> writeToTransportInternal(context, ByteBuffer.wrap(data, 0 , data.length)));
             } else {
-                writeToTransportInternal(context, ByteBuffer.wrap(arr, 0 , arr.length));
+                writeToTransportInternal(context, ByteBuffer.wrap(data, 0 , data.length));
             }
         } finally {
-            notifyTrafficSent(context.getNetworkContext(), message);
+            notifyTrafficSent(context.getNetworkContext(), data, message);
         }
     }
 
