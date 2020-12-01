@@ -162,13 +162,13 @@ You can access all the data sent to and from the transport adapter by using traf
         withTransport(new MqttsnClientUdpTransport(udpOptions)).
         withTrafficListener(new IMqttsnTrafficListener() {
             @Override
-            public void trafficSent(IMqttsnContext context, byte[] data) {
-                System.err.println(String.format("sent [%s] bytes [%s]", data.length, MqttsnWireUtils.toBinary(data)));
+            public void trafficSent(IMqttsnContext context, IMessage message) {
+                System.err.println(String.format("message [%s]", message));
             }
 
             @Override
-            public void trafficReceived(INetworkContext context, byte[] data) {
-                System.err.println(String.format("received [%s] bytes [%s]", data.length, MqttsnWireUtils.toBinary(data)));
+            public void trafficReceived(INetworkContext context, IMessage message) {
+                System.err.println(String.format("message [%s]", message));
             }
         }).
         withCodec(MqttsnCodecs.MQTTSN_CODEC_VERSION_1_2);
