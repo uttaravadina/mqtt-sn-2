@@ -101,7 +101,7 @@ public class MqttsnGatewayMessageHandler
     protected IMqttsnMessage handleConnect(IMqttsnContext context, IMqttsnMessage connect) throws MqttsnException, MqttsnCodecException {
 
         MqttsnConnect connectMessage = (MqttsnConnect) connect ;
-        if(!validateClientId(connectMessage.getClientId())){
+        if(!validateClientId(context, connectMessage.getClientId())){
 
             logger.log(Level.WARNING, String.format("rejected client based on non-listed clientId [%s]", connectMessage.getClientId()));
             return registry.getMessageFactory().createConnack(MqttsnConstants.RETURN_CODE_SERVER_UNAVAILABLE);
@@ -125,7 +125,7 @@ public class MqttsnGatewayMessageHandler
         }
     }
 
-    protected boolean validateClientId(String clientId){
+    protected boolean validateClientId(IMqttsnContext context, String clientId){
         Set<String> allowedClientId = ((MqttsnGatewayOptions)registry.getOptions()).getAllowedClientIds();
         if(allowedClientId != null && !allowedClientId.isEmpty()){
             return allowedClientId.contains(clientId);

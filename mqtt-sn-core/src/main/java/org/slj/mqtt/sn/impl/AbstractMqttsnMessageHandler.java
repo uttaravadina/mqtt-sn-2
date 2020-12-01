@@ -270,7 +270,7 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
         logger.log(Level.INFO,
                 String.format("attempting to identifier user and establish mqtt-sn context from [%s]", message));
         if(message instanceof MqttsnConnect){
-            MqttsnContext context = new MqttsnContext(((MqttsnConnect)message).getClientId());
+            MqttsnContext context = new MqttsnContext(networkContext, ((MqttsnConnect)message).getClientId());
             networkContext.setMqttsnContext(context);
             registry.getNetworkRegistry().putContext(networkContext);
             return context;

@@ -29,14 +29,24 @@ import java.util.Objects;
 public class MqttsnContext implements IMqttsnContext {
 
     private final String id;
+    private INetworkContext networkContext;
 
-    public MqttsnContext(String id) {
+    public MqttsnContext(INetworkContext networkContext, String id) {
+        this.networkContext = networkContext;
         this.id = id;
     }
 
     @Override
     public String getId() {
         return id;
+    }
+
+    public INetworkContext getNetworkContext() {
+        return networkContext;
+    }
+
+    public void setNetworkContext(INetworkContext networkContext) {
+        this.networkContext = networkContext;
     }
 
     @Override

@@ -32,6 +32,10 @@ public class NetworkContext implements INetworkContext{
     NetworkAddress networkAddress;
     int receivePort;
 
+    public NetworkContext(NetworkAddress networkAddress){
+        this.networkAddress = networkAddress;
+    }
+
     public NetworkContext(NetworkAddress networkAddress, IMqttsnContext mqttsnContext) {
         this.mqttsnContext = mqttsnContext;
         this.networkAddress = networkAddress;

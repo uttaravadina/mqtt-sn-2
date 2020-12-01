@@ -38,7 +38,7 @@ public interface IMqttsnTrafficListener {
      * @param context - the context from which the transport originated
      * @param message - the data that was sent/received
      */
-    void trafficSent(IMqttsnContext context, IMqttsnMessage message);
+    void trafficSent(INetworkContext context, IMqttsnMessage message);
 
     /**
      * Traffic has been received  by the transport layer

@@ -26,6 +26,8 @@ package org.slj.mqtt.sn.model;
 
 public interface IMqttsnContext {
 
+    public INetworkContext getNetworkContext();
+
     public String getId();
 
 }

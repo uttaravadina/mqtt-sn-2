@@ -95,7 +95,7 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
         }
     }
 
-    private void notifyTrafficSent(final IMqttsnContext context, IMqttsnMessage message) {
+    private void notifyTrafficSent(final INetworkContext context, IMqttsnMessage message) {
         List<IMqttsnTrafficListener> list = getRegistry().getTrafficListeners();
         if(list != null && !list.isEmpty()){
             list.stream().forEach(l -> l.trafficSent(context, message));
@@ -129,7 +129,7 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
                 writeToTransportInternal(context, ByteBuffer.wrap(arr, 0 , arr.length));
             }
         } finally {
-            notifyTrafficSent(context, message);
+            notifyTrafficSent(context.getNetworkContext(), message);
         }
     }
 

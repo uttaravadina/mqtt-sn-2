@@ -73,7 +73,9 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
             while(itr.hasNext()){
                 String key = itr.next();
                 NetworkAddress address = options.getNetworkAddressEntries().get(key);
-                networkAddressRegistry.putContext(new NetworkContext(address, new MqttsnContext(key)));
+                NetworkContext networkContext = new NetworkContext(address);
+                networkContext.setMqttsnContext(new MqttsnContext(networkContext, key));
+                networkAddressRegistry.putContext(networkContext);
             }
         }
     }
