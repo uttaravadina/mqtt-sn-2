@@ -109,45 +109,46 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
     @Override
     public ConnectResult connect(IMqttsnSessionState state, String clientId, int keepAlive, boolean cleanSession) throws MqttsnException {
         ConnectResult result = null;
-        try {
-            result = processAllowList(clientId);
+        result = processAllowList(clientId);
+        if(result == null){
             synchronized (state.getContext()){
                 try {
-                    if(!registry.getBrokerService().isConnected(state.getContext())){
-                        result = registry.getBrokerService().connect(state.getContext(), state.getContext().getId(), cleanSession, keepAlive);
-                    } else {
-                        result = new ConnectResult(Result.STATUS.SUCCESS, "connection already established");
-                    }
+                    result = registry.getBrokerService().connect(state.getContext(), state.getContext().getId(), cleanSession, keepAlive);
                 } finally {
-                    if(cleanSession){
-                        //clear down all prior session state
-                        cleanSession(state.getContext());
+                    if(!result.isError()){
+                        if(cleanSession){
+                            //clear down all prior session state
+                            cleanSession(state.getContext());
+                        }
+                        state.setKeepAlive(keepAlive);
+                        state.setClientState(MqttsnClientState.CONNECTED);
+                    } else {
+                        //-- connect was not successful ensure we
+                        //-- do not hold a reference to any session
+                        clear(state.getContext());
                     }
-                    state.setKeepAlive(keepAlive);
-                    state.setClientState(MqttsnClientState.CONNECTED);
                 }
             }
-            logger.log(Level.INFO, String.format("handled connection request for [%s] with cleanSession [%s] -> [%s], [%s]", state.getContext(), cleanSession, result.getStatus(), result.getMessage()));
-            return result;
-        } finally {
-            if(result != null && result.isError()){
-                //-- connect was not successful ensure we
-                //-- do not hold a reference to any session
-                clear(state.getContext());
-            }
         }
+
+        logger.log(Level.INFO, String.format("handled connection request for [%s] with cleanSession [%s] -> [%s], [%s]", state.getContext(), cleanSession, result.getStatus(), result.getMessage()));
+        return result;
     }
 
     @Override
-    public void disconnect(IMqttsnSessionState state, int duration) {
+    public void disconnect(IMqttsnSessionState state, int duration) throws MqttsnException {
+        DisconnectResult result = null;
         synchronized (state.getContext()){
-            if(duration > 0){
-                logger.log(Level.INFO, String.format("[%s] setting client state asleep for [%s]", state.getContext(), duration));
-                state.setKeepAlive(duration);
-                state.setClientState(MqttsnClientState.ASLEEP);
-            } else {
-                logger.log(Level.INFO, String.format("[%s] disconnecting client", state.getContext()));
-                sessionLookup.remove(state.getContext());
+            result = registry.getBrokerService().disconnect(state.getContext(), duration);
+            if(!result.isError()){
+                if(duration > 0){
+                    logger.log(Level.INFO, String.format("[%s] setting client state asleep for [%s]", state.getContext(), duration));
+                    state.setKeepAlive(duration);
+                    state.setClientState(MqttsnClientState.ASLEEP);
+                } else {
+                    logger.log(Level.INFO, String.format("[%s] disconnecting client", state.getContext()));
+                    sessionLookup.remove(state.getContext());
+                }
             }
         }
     }

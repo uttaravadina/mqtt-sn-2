@@ -29,6 +29,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.slj.mqtt.sn.gateway.impl.broker.AbstractMqttsnBrokerConnection;
 import org.slj.mqtt.sn.gateway.spi.broker.MqttsnBrokerException;
 import org.slj.mqtt.sn.gateway.spi.broker.MqttsnBrokerOptions;
+import org.slj.mqtt.sn.model.IMqttsnContext;
 
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -95,8 +96,12 @@ public class PahoMqttsnBrokerConnection extends AbstractMqttsnBrokerConnection i
         }
     }
 
+    public boolean connect(IMqttsnContext context, boolean cleanSession, int keepAlive) throws MqttsnBrokerException{
+        return true;
+    }
+
     @Override
-    public boolean subscribe(String topicPath, int QoS) throws MqttsnBrokerException {
+    public boolean subscribe(IMqttsnContext context, String topicPath, int QoS) throws MqttsnBrokerException {
         try {
             logger.log(Level.INFO, String.format("subscribing connection to [%s] -> [%s]", topicPath, QoS));
             client.subscribe(topicPath, QoS);
@@ -107,7 +112,7 @@ public class PahoMqttsnBrokerConnection extends AbstractMqttsnBrokerConnection i
     }
 
     @Override
-    public boolean unsubscribe(String topicPath) throws MqttsnBrokerException {
+    public boolean unsubscribe(IMqttsnContext context, String topicPath) throws MqttsnBrokerException {
         try {
             logger.log(Level.INFO, String.format("subscribing connection from [%s]", topicPath));
             client.unsubscribe(topicPath);
@@ -118,7 +123,7 @@ public class PahoMqttsnBrokerConnection extends AbstractMqttsnBrokerConnection i
     }
 
     @Override
-    public boolean publish(String topicPath, int QoS, boolean retain, byte[] data) throws MqttsnBrokerException {
+    public boolean publish(IMqttsnContext context, String topicPath, int QoS, boolean retain, byte[] data) throws MqttsnBrokerException {
         try {
             logger.log(Level.INFO, String.format("publishing to connection [%s] -> [%s] bytes", topicPath, data.length));
             client.publish(topicPath, data, QoS, retain);

@@ -26,6 +26,7 @@ package org.slj.mqtt.sn.net;
 
 import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.INetworkContext;
+import org.slj.mqtt.sn.spi.INetworkAddressRegistry;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -35,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class NetworkAddressRegistry {
+public class NetworkAddressRegistry implements INetworkAddressRegistry {
 
     static Logger logger = Logger.getLogger(NetworkAddressRegistry.class.getName());
 

@@ -40,6 +40,8 @@ public class Result {
         this.status = status;
         if(status == STATUS.SUCCESS){
             returnCode = MqttsnConstants.RETURN_CODE_ACCEPTED;
+        } else if (status == STATUS.ERROR){
+            returnCode = MqttsnConstants.RETURN_CODE_SERVER_UNAVAILABLE;
         }
     }
 

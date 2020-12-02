@@ -47,7 +47,7 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
     protected IMqttsnMessageQueue messageQueue;
     protected IMqttsnTransport transport;
     protected AbstractMqttsnRuntime runtime;
-    protected NetworkAddressRegistry networkAddressRegistry;
+    protected INetworkAddressRegistry networkAddressRegistry;
     protected IMqttsnTopicRegistry topicRegistry;
     protected IMqttsnSubscriptionRegistry subscriptionRegistry;
     protected IMqttsnMessageStateService messageStateService;
@@ -66,9 +66,7 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
     }
 
     protected void initNetworkRegistry(){
-        if(networkAddressRegistry == null){
-            networkAddressRegistry = new NetworkAddressRegistry(options.getMaxNetworkAddressEntries());
-        }
+        //-- ensure initial definitions exist in the network registry
         if(options.getNetworkAddressEntries() != null && !options.getNetworkAddressEntries().isEmpty()){
             Iterator<String> itr = options.getNetworkAddressEntries().keySet().iterator();
             while(itr.hasNext()){
@@ -92,7 +90,7 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
     }
 
     @Override
-    public NetworkAddressRegistry getNetworkRegistry() {
+    public INetworkAddressRegistry getNetworkRegistry() {
         return networkAddressRegistry;
     }
 
@@ -131,7 +129,7 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
         return messageQueue;
     }
 
-    public NetworkAddressRegistry getNetworkAddressRegistry() {
+    public INetworkAddressRegistry getNetworkAddressRegistry() {
         return networkAddressRegistry;
     }
 
@@ -216,12 +214,13 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
         return this;
     }
 
-    public AbstractMqttsnRuntimeRegistry withNetworkAddressRegistry(NetworkAddressRegistry networkAddressRegistry){
+    public AbstractMqttsnRuntimeRegistry withNetworkAddressRegistry(INetworkAddressRegistry networkAddressRegistry){
         this.networkAddressRegistry = networkAddressRegistry;
         return this;
     }
 
     protected void validateOnStartup() throws MqttsnRuntimeException {
+        if(networkAddressRegistry == null) throw new MqttsnRuntimeException("network-registry must be bound for valid runtime");
         if(messageStateService == null) throw new MqttsnRuntimeException("message state service must be bound for valid runtime");
         if(transport == null) throw new MqttsnRuntimeException("transport must be bound for valid runtime");
         if(topicRegistry == null) throw new MqttsnRuntimeException("topic registry must be bound for valid runtime");

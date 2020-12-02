@@ -26,11 +26,14 @@ package org.slj.mqtt.sn.gateway.spi;
 
 public class PublishResult extends Result {
 
-    public PublishResult(STATUS status) {
+    public PublishResult(STATUS status, String message) {
         super(status);
+        setMessage(message);
     }
 
-    public PublishResult(STATUS status, int returnCode) {
-        super(status, returnCode);
+    public PublishResult(STATUS status, int returnCode, String message) {
+        super(status);
+        setMessage(message);
+        setReturnCode(returnCode);
     }
 }

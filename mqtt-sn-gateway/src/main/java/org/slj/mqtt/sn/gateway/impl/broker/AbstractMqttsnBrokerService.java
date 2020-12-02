@@ -74,7 +74,18 @@ public abstract class AbstractMqttsnBrokerService
         if(!connection.isConnected()){
             throw new MqttsnBrokerException("underlying broker connection was not connected");
         }
-        return new ConnectResult(Result.STATUS.SUCCESS, "connection success");
+        boolean success = connection.connect(context, cleanSession, keepAlive);
+        return new ConnectResult(success ? Result.STATUS.SUCCESS : Result.STATUS.ERROR, success  ? "connection success" : "connection refused by broker side");
+    }
+
+    @Override
+    public DisconnectResult disconnect(IMqttsnContext context, int keepAlive) throws MqttsnBrokerException {
+        IMqttsnBrokerConnection connection = getBrokerConnection(context);
+        if(!connection.isConnected()){
+            throw new MqttsnBrokerException("underlying broker connection was not connected");
+        }
+        boolean success = connection.disconnect(context, keepAlive);
+        return new DisconnectResult(success ? Result.STATUS.SUCCESS : Result.STATUS.ERROR, success  ? "disconnection success" : "disconnection refused by broker side");
     }
 
     @Override
@@ -83,8 +94,8 @@ public abstract class AbstractMqttsnBrokerService
         if(!connection.isConnected()){
             throw new MqttsnBrokerException("underlying broker connection was not connected");
         }
-        boolean success = connection.publish(topicPath, QoS, false, payload);
-        return new PublishResult(success ? Result.STATUS.SUCCESS : Result.STATUS.ERROR);
+        boolean success = connection.publish(context, topicPath, QoS, false, payload);
+        return new PublishResult(success ? Result.STATUS.SUCCESS : Result.STATUS.ERROR, success ? "publish success" : "publish refused by broker side");
     }
 
     @Override
@@ -93,7 +104,7 @@ public abstract class AbstractMqttsnBrokerService
         if(!connection.isConnected()){
             throw new MqttsnBrokerException("underlying broker connection was not connected");
         }
-        boolean success = connection.subscribe(topicPath, QoS);
+        boolean success = connection.subscribe(context, topicPath, QoS);
         return new SubscribeResult(success ? Result.STATUS.SUCCESS : Result.STATUS.ERROR);
     }
 
@@ -103,7 +114,7 @@ public abstract class AbstractMqttsnBrokerService
         if(!connection.isConnected()){
             throw new MqttsnBrokerException("underlying broker connection was not connected");
         }
-        boolean success = connection.unsubscribe(topicPath);
+        boolean success = connection.unsubscribe(context, topicPath);
         return new UnsubscribeResult(success ? Result.STATUS.SUCCESS : Result.STATUS.ERROR);
     }
 

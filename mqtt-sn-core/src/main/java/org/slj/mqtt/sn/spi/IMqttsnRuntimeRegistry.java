@@ -54,7 +54,7 @@ public interface IMqttsnRuntimeRegistry {
 
     IMqttsnMessageStateService getMessageStateService();
 
-    NetworkAddressRegistry getNetworkRegistry();
+    INetworkAddressRegistry getNetworkRegistry();
 
     IMqttsnTopicRegistry getTopicRegistry();
 

@@ -24,6 +24,8 @@
 
 package org.slj.mqtt.sn.gateway.spi.broker;
 
+import org.slj.mqtt.sn.model.IMqttsnContext;
+
 import java.io.Closeable;
 
 public interface IMqttsnBrokerConnection extends Closeable {
@@ -32,9 +34,13 @@ public interface IMqttsnBrokerConnection extends Closeable {
 
     void close();
 
-    boolean subscribe(String topicPath, int QoS) throws MqttsnBrokerException;
+    boolean disconnect(IMqttsnContext context, int keepAlive) throws MqttsnBrokerException;
 
-    boolean unsubscribe(String topicPath) throws MqttsnBrokerException;
+    boolean connect(IMqttsnContext context, boolean cleanSession, int keepAlive) throws MqttsnBrokerException;
 
-    boolean publish(String topicPath, int QoS, boolean retain, byte[] data) throws MqttsnBrokerException;
+    boolean subscribe(IMqttsnContext context, String topicPath, int QoS) throws MqttsnBrokerException;
+
+    boolean unsubscribe(IMqttsnContext context, String topicPath) throws MqttsnBrokerException;
+
+    boolean publish(IMqttsnContext context, String topicPath, int QoS, boolean retain, byte[] data) throws MqttsnBrokerException;
 }
