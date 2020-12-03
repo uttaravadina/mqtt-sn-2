@@ -26,8 +26,7 @@ package org.slj.mqtt.sn.impl;
 
 import org.slj.mqtt.sn.model.MqttsnContext;
 import org.slj.mqtt.sn.model.MqttsnOptions;
-import org.slj.mqtt.sn.model.NetworkContext;
-import org.slj.mqtt.sn.net.NetworkAddressRegistry;
+import org.slj.mqtt.sn.net.NetworkContext;
 import org.slj.mqtt.sn.net.NetworkAddress;
 import org.slj.mqtt.sn.spi.*;
 
@@ -68,13 +67,17 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
     protected void initNetworkRegistry(){
         //-- ensure initial definitions exist in the network registry
         if(options.getNetworkAddressEntries() != null && !options.getNetworkAddressEntries().isEmpty()){
-            Iterator<String> itr = options.getNetworkAddressEntries().keySet().iterator();
-            while(itr.hasNext()){
-                String key = itr.next();
-                NetworkAddress address = options.getNetworkAddressEntries().get(key);
-                NetworkContext networkContext = new NetworkContext(address);
-                networkContext.setMqttsnContext(new MqttsnContext(networkContext, key));
-                networkAddressRegistry.putContext(networkContext);
+            try {
+                Iterator<String> itr = options.getNetworkAddressEntries().keySet().iterator();
+                while(itr.hasNext()){
+                    String key = itr.next();
+                    NetworkAddress address = options.getNetworkAddressEntries().get(key);
+                    NetworkContext networkContext = new NetworkContext(address);
+                    networkContext.setMqttsnContext(new MqttsnContext(networkContext, key));
+                    networkAddressRegistry.putContext(networkContext);
+                }
+            } catch(NetworkRegistryException e){
+               throw new RuntimeException(e);
             }
         }
     }

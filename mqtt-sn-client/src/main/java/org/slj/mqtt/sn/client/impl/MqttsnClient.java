@@ -51,10 +51,15 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
 
     @Override
     protected void startupServices(IMqttsnRuntimeRegistry registry) throws MqttsnException {
-        Optional<INetworkContext> optionalContext = registry.getNetworkRegistry().first();
-        if(!registry.getOptions().isEnableDiscovery() &&
-                !optionalContext.isPresent()){
-            throw new MqttsnRuntimeException("unable to launch non-discoverable client without configured gateway");
+
+        try {
+            Optional<INetworkContext> optionalContext = registry.getNetworkRegistry().first();
+            if(!registry.getOptions().isEnableDiscovery() &&
+                    !optionalContext.isPresent()){
+                throw new MqttsnRuntimeException("unable to launch non-discoverable client without configured gateway");
+            }
+        } catch(NetworkRegistryException e){
+            throw new MqttsnException("error using network registry", e);
         }
 
         callStartup(registry.getMessageStateService());
@@ -283,7 +288,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
                 } else {
                     throw new MqttsnException("unable to discovery gateway within specified timeout");
                 }
-            } catch(InterruptedException e){
+            } catch(NetworkRegistryException | InterruptedException e){
                 throw new MqttsnException("discovery was interrupted and no gateway was found", e);
             }
         }

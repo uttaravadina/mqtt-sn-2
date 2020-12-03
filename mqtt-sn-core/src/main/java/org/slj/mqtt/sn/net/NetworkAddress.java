@@ -24,12 +24,12 @@
 
 package org.slj.mqtt.sn.net;
 
+import java.net.InetSocketAddress;
 import java.util.Objects;
 
 public class NetworkAddress {
 
     private final String hostAddress;
-    private String hostName;
     private final int port;
     private final String path;
 
@@ -40,23 +40,10 @@ public class NetworkAddress {
         this.path = null;
     }
 
-    public NetworkAddress(int port, String hostAddress, String hostName) {
-       this(port, hostAddress);
-       this.hostName = hostName;
-    }
-
     public NetworkAddress(String path) {
         this.path = path;
         this.hostAddress = null;
         this.port = -1;
-    }
-
-    public String getHostName() {
-        return hostName;
-    }
-
-    public void setHostName(String hostName) {
-        this.hostName = hostName;
     }
 
     public String getHostAddress() {
@@ -86,8 +73,12 @@ public class NetworkAddress {
         return Objects.hash(hostAddress, port, path);
     }
 
-    public static NetworkAddress from(int port, String hostAddress, String hostName){
-        return new NetworkAddress(port, hostAddress, hostName);
+    public InetSocketAddress toSocketAddress(){
+        return InetSocketAddress.createUnresolved(hostAddress, port);
+    }
+
+    public static NetworkAddress from(InetSocketAddress address){
+        return NetworkAddress.from(address.getPort(), address.getAddress().getHostAddress());
     }
 
     public static NetworkAddress from(int port, String hostAddress){
@@ -99,14 +90,13 @@ public class NetworkAddress {
     }
 
     public static NetworkAddress localhost(int port) {
-        return new NetworkAddress(port, "127.0.0.1", "localhost");
+        return new NetworkAddress(port, "127.0.0.1");
     }
 
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("SocketAddress [");
         sb.append("hostAddress='").append(hostAddress).append('\'');
-        sb.append(", hostName='").append(hostName).append('\'');
         sb.append(", port=").append(port);
         sb.append(", path='").append(path).append('\'');
         sb.append(']');

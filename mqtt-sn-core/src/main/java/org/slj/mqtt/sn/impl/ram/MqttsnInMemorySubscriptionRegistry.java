@@ -24,6 +24,7 @@
 
 package org.slj.mqtt.sn.impl.ram;
 
+import org.slj.mqtt.sn.impl.AbstractSubscriptionRegistry;
 import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.spi.MqttsnException;
 import org.slj.mqtt.sn.model.Subscription;
@@ -33,8 +34,7 @@ import org.slj.mqtt.sn.utils.TopicPath;
 import java.util.*;
 
 public class MqttsnInMemorySubscriptionRegistry<T extends IMqttsnRuntimeRegistry>
-        extends MqttsnService<T>
-        implements IMqttsnSubscriptionRegistry<T> {
+        extends AbstractSubscriptionRegistry<T> {
 
     protected Map<IMqttsnContext, Set<Subscription>> subscriptionsLookups;
 
@@ -42,42 +42,6 @@ public class MqttsnInMemorySubscriptionRegistry<T extends IMqttsnRuntimeRegistry
     public void start(T runtime) throws MqttsnException {
         super.start(runtime);
         subscriptionsLookups = Collections.synchronizedMap(new HashMap());
-    }
-
-    @Override
-    public boolean subscribe(IMqttsnContext context, String topicPath, int QoS) throws MqttsnException {
-        Set<Subscription> paths = getLookup(context);
-        TopicPath path = new TopicPath(topicPath);
-        return paths.add(new Subscription(path, QoS));
-    }
-
-    @Override
-    public boolean unsubscribe(IMqttsnContext context, String topicPath) throws MqttsnException {
-        Set<Subscription> paths = getLookup(context);
-        TopicPath path = new TopicPath(topicPath);
-        return paths.remove(new Subscription(path));
-    }
-
-
-    @Override
-    public int getQos(IMqttsnContext context, String topicPath) throws MqttsnException {
-        Set<Subscription> paths = subscriptionsLookups.get(context);
-        if(paths != null && !paths.isEmpty()) {
-            Iterator<Subscription> pathItr = paths.iterator();
-            client:
-            while (pathItr.hasNext()) {
-                try {
-                    Subscription sub = pathItr.next();
-                    TopicPath path = sub.getTopicPath();
-                    if (path.matches(topicPath)) {
-                        return sub.getQoS();
-                    }
-                } catch (Exception e) {
-                    throw new MqttsnException(e);
-                }
-            }
-        }
-        throw new MqttsnException("no matching subscription found for client");
     }
 
     @Override
@@ -108,12 +72,13 @@ public class MqttsnInMemorySubscriptionRegistry<T extends IMqttsnRuntimeRegistry
         return matchingClients;
     }
 
-    protected Set<Subscription> getLookup(IMqttsnContext context){
+    @Override
+    protected Set<Subscription> readSubscriptions(IMqttsnContext context){
         Set<Subscription> set = subscriptionsLookups.get(context);
         if(set == null){
             synchronized (this){
                 if((set = subscriptionsLookups.get(context)) == null){
-                    set = createSubscriptionsLookup(context);
+                    set = new HashSet<>();
                     subscriptionsLookups.put(context, set);
                 }
             }
@@ -121,10 +86,13 @@ public class MqttsnInMemorySubscriptionRegistry<T extends IMqttsnRuntimeRegistry
         return set;
     }
 
-    protected Set<Subscription> createSubscriptionsLookup(IMqttsnContext context){
-        return new HashSet<>();
+    @Override
+    protected boolean addSubscription(IMqttsnContext context, Subscription subscription) throws MqttsnException {
+        Set<Subscription> set = readSubscriptions(context);
+        return set.add(subscription);
     }
 
+    @Override
     public void clear(IMqttsnContext context) throws MqttsnException {
         subscriptionsLookups.remove(context);
     }

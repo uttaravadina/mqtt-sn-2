@@ -88,4 +88,15 @@ public class MqttsnSessionState implements IMqttsnSessionState {
     public void setSessionStarted(Date sessionStarted) {
         this.sessionStarted = sessionStarted;
     }
+
+    @Override
+    public String toString() {
+        return "MqttsnSessionState{" +
+                "context=" + context +
+                ", state=" + state +
+                ", lastSeen=" + lastSeen +
+                ", keepAlive=" + keepAlive +
+                ", sessionStarted=" + sessionStarted +
+                '}';
+    }
 }

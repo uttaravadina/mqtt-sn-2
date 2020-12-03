@@ -27,11 +27,9 @@ package org.slj.mqtt.sn.net;
 import org.slj.mqtt.sn.impl.AbstractMqttsnUdpTransport;
 import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.INetworkContext;
-import org.slj.mqtt.sn.model.NetworkContext;
 import org.slj.mqtt.sn.spi.IMqttsnMessage;
 import org.slj.mqtt.sn.spi.MqttsnException;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -106,10 +104,9 @@ public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
     public void writeToTransport(IMqttsnContext context, ByteBuffer buffer) throws MqttsnException {
         try {
             byte[] payload = drain(buffer);
-            NetworkAddress address = registry.getNetworkRegistry().getNetworkAddress(context);
+            NetworkAddress address = context.getNetworkContext().getNetworkAddress();
             InetAddress inetAddress = InetAddress.getByName(address.getHostAddress());
             DatagramPacket packet = new DatagramPacket(payload, payload.length, inetAddress, address.getPort());
-
             logger.log(Level.INFO, String.format("writing [%s] bytes to [%s] port [%s]", payload.length, inetAddress, address.getPort()));
             socket.send(packet);
         } catch(Exception e){
@@ -132,7 +129,7 @@ public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
                     socket.send(packet);
                 }
             }
-        } catch(IOException e){
+        } catch(Exception e){
             throw new MqttsnException(e);
         }
     }

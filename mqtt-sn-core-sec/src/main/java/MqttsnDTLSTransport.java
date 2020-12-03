@@ -29,10 +29,8 @@ import org.slj.dtls.core.MqttsnDTLSServer;
 import org.slj.dtls.core.UnreliableDatagramTransport;
 import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.INetworkContext;
-import org.slj.mqtt.sn.model.NetworkContext;
 import org.slj.mqtt.sn.net.MqttsnUdpOptions;
 import org.slj.mqtt.sn.net.MqttsnUdpTransport;
-import org.slj.mqtt.sn.net.NetworkAddress;
 import org.slj.mqtt.sn.spi.MqttsnException;
 
 import java.net.DatagramSocket;
@@ -79,7 +77,7 @@ public class MqttsnDTLSTransport extends MqttsnUdpTransport {
         final DatagramTransport serverTransport;
 
         Thread thread = new Thread(() -> {
-            logger.log(Level.INFO, String.format("creating dtls server [%s] bound to socket [%s] with buffer size [%s], running ? [%s]", threadName, localSocket.getLocalPort(), bufSize, running));
+//            logger.log(Level.INFO, String.format("creating dtls server [%s] bound to socket [%s] with buffer size [%s], running ? [%s]", threadName, localSocket.getLocalPort(), bufSize, running));
             byte[] buff = new byte[bufferSize];
             MqttsnDTLSServer server = new MqttsnDTLSServer();
 
@@ -93,14 +91,14 @@ public class MqttsnDTLSTransport extends MqttsnUdpTransport {
                     byte[] buf = new byte[dtlsServer.getReceiveLimit()];
                     dtlsServer.receive(buff, 0, buff.length, bufferSize);
 
-                    NetworkAddress address = NetworkAddress.from(p.getPort(), p.getAddress().getHostAddress());
-                    INetworkContext context = registry.getNetworkRegistry().getContext(address);
-                    if(context == null){
-                        logger.log(Level.INFO, String.format("creating new [%s] context for [%s]", threadName, address));
-                        context = new NetworkContext(address, null);
-                    }
-                    context.setReceivePort(localSocket.getLocalPort());
-                    receiveFromTransport(context, wrap(buff, p.getLength()));
+//                    NetworkAddress address = NetworkAddress.from(p.getPort(), p.getAddress().getHostAddress());
+//                    INetworkContext context = registry.getNetworkRegistry().getContext(address);
+//                    if(context == null){
+//                        logger.log(Level.INFO, String.format("creating new [%s] context for [%s]", threadName, address));
+//                        context = new NetworkContext(address, null);
+//                    }
+//                    context.setReceivePort(localSocket.getLocalPort());
+//                    receiveFromTransport(context, wrap(buff, p.getLength()));
                 } catch(Exception e){
                     logger.log(Level.SEVERE, "encountered an error listening for traffic", e);
                 } finally {

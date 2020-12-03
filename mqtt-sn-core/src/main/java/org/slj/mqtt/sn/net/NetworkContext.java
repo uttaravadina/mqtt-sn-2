@@ -22,15 +22,16 @@
  * under the License.
  */
 
-package org.slj.mqtt.sn.model;
+package org.slj.mqtt.sn.net;
 
-import org.slj.mqtt.sn.net.NetworkAddress;
+import org.slj.mqtt.sn.model.IMqttsnContext;
+import org.slj.mqtt.sn.model.INetworkContext;
 
-public class NetworkContext implements INetworkContext{
+public class NetworkContext implements INetworkContext {
 
-    IMqttsnContext mqttsnContext;
-    NetworkAddress networkAddress;
-    int receivePort;
+    protected IMqttsnContext mqttsnContext;
+    protected NetworkAddress networkAddress;
+    protected int receivePort;
 
     public NetworkContext(NetworkAddress networkAddress){
         this.networkAddress = networkAddress;

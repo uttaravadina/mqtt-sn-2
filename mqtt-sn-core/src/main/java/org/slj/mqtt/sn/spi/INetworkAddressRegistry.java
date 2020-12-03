@@ -12,17 +12,13 @@ import java.util.concurrent.TimeUnit;
 
 public interface INetworkAddressRegistry {
 
-    INetworkContext getContext(NetworkAddress address);
+    INetworkContext getContext(NetworkAddress address) throws NetworkRegistryException ;
 
-    INetworkContext getContext(IMqttsnContext context);
+    Optional<INetworkContext> first() throws NetworkRegistryException ;
 
-    Optional<INetworkContext> first();
+    void putContext(INetworkContext context) throws NetworkRegistryException ;
 
-    NetworkAddress getNetworkAddress(IMqttsnContext context);
+    Optional<INetworkContext> waitForContext(int time, TimeUnit unit) throws InterruptedException, NetworkRegistryException;
 
-    void putContext(INetworkContext context);
-
-    Optional<INetworkContext> waitForContext(int time, TimeUnit unit) throws InterruptedException;
-
-    List<InetAddress> getAllBroadcastAddresses() throws SocketException;
+    List<InetAddress> getAllBroadcastAddresses() throws NetworkRegistryException ;
 }

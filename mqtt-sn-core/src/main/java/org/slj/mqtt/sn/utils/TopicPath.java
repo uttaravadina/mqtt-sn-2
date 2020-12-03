@@ -84,6 +84,10 @@ public class TopicPath {
 //            && SUBCRIPTION_REGX.matches(topicPath);
     }
 
+    public String toString(){
+        return topic.toString();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

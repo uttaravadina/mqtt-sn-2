@@ -26,7 +26,6 @@ package org.slj.sn.gateway.network;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.datagram.DatagramSocket;
-import org.slj.mqtt.sn.codec.MqttsnCodecException;
 import org.slj.mqtt.sn.gateway.spi.gateway.IMqttsnGatewayRuntimeRegistry;
 import org.slj.mqtt.sn.impl.AbstractMqttsnUdpTransport;
 import org.slj.mqtt.sn.net.MqttsnUdpOptions;
@@ -35,7 +34,8 @@ import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.INetworkContext;
 import org.slj.mqtt.sn.spi.IMqttsnMessage;
 import org.slj.mqtt.sn.spi.MqttsnException;
-import org.slj.mqtt.sn.model.NetworkContext;
+import org.slj.mqtt.sn.net.NetworkContext;
+import org.slj.mqtt.sn.spi.NetworkRegistryException;
 import org.slj.mqtt.sn.wire.MqttsnWireUtils;
 
 import java.nio.ByteBuffer;
@@ -85,16 +85,21 @@ public class MqttsnVertxUdpTransport
 
     @Override
     public void writeToTransport(IMqttsnContext context, ByteBuffer buffer) {
-        NetworkAddress address = registry.getNetworkRegistry().getNetworkAddress(context);
-        if(address != null){
-            byte[] bb = drain(buffer);
-            Buffer buf = Buffer.buffer(bb);
-            socket.send(buf, address.getPort(), address.getHostAddress(), asyncResult -> {
-                if(logger.isLoggable(Level.INFO)){
-                    logger.log(Level.INFO,
-                            String.format("sent [%s] bytes to [%s] -> [%s]", bb.length, context, MqttsnWireUtils.toBinary(bb)));
-                }
-            });
+        try {
+            NetworkAddress address = registry.getNetworkRegistry().getNetworkAddress(context);
+            if(address != null){
+                byte[] bb = drain(buffer);
+                Buffer buf = Buffer.buffer(bb);
+                socket.send(buf, address.getPort(), address.getHostAddress(), asyncResult -> {
+                    if(logger.isLoggable(Level.INFO)){
+                        logger.log(Level.INFO,
+                                String.format("sent [%s] bytes to [%s] -> [%s]", bb.length, context, MqttsnWireUtils.toBinary(bb)));
+                    }
+                });
+            }
+        } catch(NetworkRegistryException e){
+            logger.log(Level.SEVERE,
+                    String.format("network registry error"), e);
         }
     }
 

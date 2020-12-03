@@ -24,9 +24,9 @@
 
 package org.slj.mqtt.sn.net;
 
-import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.INetworkContext;
 import org.slj.mqtt.sn.spi.INetworkAddressRegistry;
+import org.slj.mqtt.sn.spi.NetworkRegistryException;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -47,21 +47,12 @@ public class NetworkAddressRegistry implements INetworkAddressRegistry {
         networkRegistry = Collections.synchronizedMap(new HashMap<>(initialCapacity));
     }
 
-    public INetworkContext getContext(NetworkAddress address){
+    public INetworkContext getContext(NetworkAddress address) throws NetworkRegistryException {
         INetworkContext context = networkRegistry.get(address);
         return context;
     }
 
-    public INetworkContext getContext(IMqttsnContext context){
-        NetworkAddress address = getNetworkAddress(context);
-        if(address != null){
-            return getContext(address);
-        }
-        logger.log(Level.WARNING, String.format("unable to find matching network context for sn context [%s]", context));
-        return null;
-    }
-
-    public Optional<INetworkContext> first(){
+    public Optional<INetworkContext> first() throws NetworkRegistryException {
         Iterator<NetworkAddress> itr = networkRegistry.keySet().iterator();
         synchronized (networkRegistry){
             while(itr.hasNext()){
@@ -73,26 +64,7 @@ public class NetworkAddressRegistry implements INetworkAddressRegistry {
         return Optional.empty();
     }
 
-    public NetworkAddress getNetworkAddress(IMqttsnContext context){
-        Iterator<NetworkAddress> itr = networkRegistry.keySet().iterator();
-        synchronized (networkRegistry){
-            while(itr.hasNext()){
-                NetworkAddress address = itr.next();
-                INetworkContext c = networkRegistry.get(address);
-                if(c != null && c.getMqttsnContext().equals(context)) return address;
-            }
-        }
-        logger.log(Level.WARNING, String.format("unable to find matching network address for sn context [%s]", context));
-        return null;
-    }
-
-    public void putContext(INetworkContext context){
-
-        //-- ensure we update the registry when we have new addresses of devices
-        NetworkAddress oldAddress = getNetworkAddress(context.getMqttsnContext());
-        if(oldAddress != null){
-            networkRegistry.remove(oldAddress);
-        }
+    public void putContext(INetworkContext context) throws NetworkRegistryException {
         networkRegistry.put(context.getNetworkAddress(), context);
         logger.log(Level.INFO, String.format("adding network context to registry - [%s]", context));
         synchronized(mutex){
@@ -100,7 +72,7 @@ public class NetworkAddressRegistry implements INetworkAddressRegistry {
         }
     }
 
-    public Optional<INetworkContext> waitForContext(int time, TimeUnit unit) throws InterruptedException {
+    public Optional<INetworkContext> waitForContext(int time, TimeUnit unit) throws NetworkRegistryException, InterruptedException {
         synchronized(mutex){
             try {
                 while(networkRegistry.isEmpty()){
@@ -114,22 +86,25 @@ public class NetworkAddressRegistry implements INetworkAddressRegistry {
         }
     }
 
-    public List<InetAddress> getAllBroadcastAddresses() throws SocketException {
-
-        List<InetAddress> l = new ArrayList<>();
-        Enumeration<NetworkInterface> interfaces
-                = NetworkInterface.getNetworkInterfaces();
-        while (interfaces.hasMoreElements()) {
-            NetworkInterface networkInterface = interfaces.nextElement();
-            if (networkInterface.isLoopback() ||
-                    !networkInterface.isUp()) {
-                continue;
+    public List<InetAddress> getAllBroadcastAddresses() throws NetworkRegistryException {
+        try {
+            List<InetAddress> l = new ArrayList<>();
+            Enumeration<NetworkInterface> interfaces
+                    = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = interfaces.nextElement();
+                if (networkInterface.isLoopback() ||
+                        !networkInterface.isUp()) {
+                    continue;
+                }
+                networkInterface.getInterfaceAddresses().stream()
+                        .map(a -> a.getBroadcast())
+                        .filter(Objects::nonNull)
+                        .forEach(l::add);
             }
-            networkInterface.getInterfaceAddresses().stream()
-                .map(a -> a.getBroadcast())
-                .filter(Objects::nonNull)
-                .forEach(l::add);
+            return l;
+        } catch(SocketException e){
+            throw new NetworkRegistryException(e);
         }
-        return l;
     }
 }
