@@ -25,7 +25,6 @@
 package org.slj.mqtt.sn.gateway.impl.gateway;
 
 import org.slj.mqtt.sn.MqttsnConstants;
-import org.slj.mqtt.sn.gateway.impl.MqttsnSessionState;
 import org.slj.mqtt.sn.gateway.spi.*;
 import org.slj.mqtt.sn.gateway.spi.broker.MqttsnBrokerException;
 import org.slj.mqtt.sn.gateway.spi.gateway.IMqttsnGatewayRuntimeRegistry;
@@ -50,7 +49,7 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
     public void start(IMqttsnGatewayRuntimeRegistry runtime) throws MqttsnException {
         super.start(runtime);
         sessionLookup = Collections.synchronizedMap(new HashMap());
-        queueProcessor = new MqttsnMessageQueueProcessor(getRegistry());
+        queueProcessor = new MqttsnMessageQueueProcessor(getRegistry(), false);
     }
 
     @Override
@@ -160,7 +159,7 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
         synchronized (context){
             String topicPath = null;
             if(info.getType() == MqttsnConstants.TOPIC_TYPE.PREDEFINED){
-                topicPath = registry.getTopicRegistry().lookupPredefined(info.getTopicId());
+                topicPath = registry.getTopicRegistry().lookupPredefined(context, info.getTopicId());
                 info = new TopicInfo(MqttsnConstants.TOPIC_TYPE.PREDEFINED, info.getTopicId());
             } else {
                 topicPath = info.getTopicPath();

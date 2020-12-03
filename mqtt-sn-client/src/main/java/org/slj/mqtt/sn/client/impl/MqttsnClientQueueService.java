@@ -43,7 +43,7 @@ public class MqttsnClientQueueService
     @Override
     public synchronized void start(IMqttsnClientRuntimeRegistry runtime) throws MqttsnException {
         super.start(runtime);
-        processor = new MqttsnMessageQueueProcessor(runtime);
+        processor = new MqttsnMessageQueueProcessor(runtime, true);
     }
 
     @Override

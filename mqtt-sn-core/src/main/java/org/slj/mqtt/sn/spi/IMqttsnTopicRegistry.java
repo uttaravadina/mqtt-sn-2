@@ -46,8 +46,8 @@ public interface IMqttsnTopicRegistry<T extends IMqttsnRuntimeRegistry> extends 
 
     String lookupRegistered(IMqttsnContext context, int topicAlias) throws MqttsnException;
 
-    Integer lookupPredefined(String topicPath) throws MqttsnException;
+    Integer lookupPredefined(IMqttsnContext context, String topicPath) throws MqttsnException;
 
-    String lookupPredefined(int topicAlias) throws MqttsnException;
+    String lookupPredefined(IMqttsnContext context, int topicAlias) throws MqttsnException;
 
 }

@@ -43,9 +43,11 @@ public class MqttsnMessageQueueProcessor {
     static Logger logger = Logger.getLogger(MqttsnMessageQueueProcessor.class.getName());
 
     protected IMqttsnRuntimeRegistry registry;
+    protected boolean clientMode;
 
-    public MqttsnMessageQueueProcessor(IMqttsnRuntimeRegistry registry){
+    public MqttsnMessageQueueProcessor(IMqttsnRuntimeRegistry registry, boolean clientMode){
         this.registry = registry;
+        this.clientMode = clientMode;
     }
 
     public void process(IMqttsnContext context) throws MqttsnException {
@@ -57,8 +59,11 @@ public class MqttsnMessageQueueProcessor {
                     TopicInfo info = registry.getTopicRegistry().lookup(context, topicPath);
                     if(info == null){
                         logger.log(Level.INFO, String.format("need to register for delivery to [%s] on topic [%s]", context, topicPath));
-                        info = registry.getTopicRegistry().register(context, topicPath);
-                        IMqttsnMessage register = registry.getMessageFactory().createRegister(info.getTopicId(), topicPath);
+                        if(!clientMode){
+                            //-- only the server hands out alias's
+                            info = registry.getTopicRegistry().register(context, topicPath);
+                        }
+                        IMqttsnMessage register = registry.getMessageFactory().createRegister(info != null ? info.getTopicId() : 0, topicPath);
                         registry.getMessageStateService().sendMessage(context, register);
                     } else {
                         //-- only deque when we have confirmed we can deliver

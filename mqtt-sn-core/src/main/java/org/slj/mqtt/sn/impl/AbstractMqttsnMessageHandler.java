@@ -274,7 +274,7 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
             throws MqttsnException {
 
         logger.log(Level.INFO, String.format("mqtt-sn handler [%s] sending outbound message [%s]",
-                context, response.getMessageName()));
+                context, response));
         registry.getTransport().writeToTransport(context, response);
     }
 
