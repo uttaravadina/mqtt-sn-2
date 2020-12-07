@@ -24,6 +24,8 @@
 package org.slj.mqtt.sn.spi;
 
 
+import java.io.Serializable;
+
 /**
  * Represents a wire message that can be manipulated by a gateway OR client for transport by
  * changing its msgId.
@@ -31,7 +33,7 @@ package org.slj.mqtt.sn.spi;
  * @author Simon Johnson <simon622 AT gmail DOT com>
  * @see Mqttsn specification at http://www.mqtt.org/new/wp-content/uploads/2009/06/MQTT-SN_spec_v1.2.pdf
  */
-public interface IMqttsnMessage {
+public interface IMqttsnMessage extends Serializable {
 
     /**
      * Get a user friendly version of the Message object.

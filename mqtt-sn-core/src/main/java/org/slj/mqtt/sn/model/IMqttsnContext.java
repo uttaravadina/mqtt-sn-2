@@ -24,7 +24,9 @@
 
 package org.slj.mqtt.sn.model;
 
-public interface IMqttsnContext {
+import java.io.Serializable;
+
+public interface IMqttsnContext extends Serializable {
 
     public INetworkContext getNetworkContext();
 

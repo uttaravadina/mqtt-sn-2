@@ -26,7 +26,9 @@ package org.slj.mqtt.sn.model;
 
 import org.slj.mqtt.sn.net.NetworkAddress;
 
-public interface INetworkContext {
+import java.io.Serializable;
+
+public interface INetworkContext extends Serializable {
 
     int getReceivePort();
 

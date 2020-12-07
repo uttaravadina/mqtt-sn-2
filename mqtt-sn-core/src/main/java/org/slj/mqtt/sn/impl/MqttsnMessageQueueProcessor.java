@@ -28,25 +28,21 @@ import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.MqttsnWaitToken;
 import org.slj.mqtt.sn.model.QueuedPublishMessage;
 import org.slj.mqtt.sn.model.TopicInfo;
-import org.slj.mqtt.sn.spi.IMqttsnMessage;
-import org.slj.mqtt.sn.spi.IMqttsnRuntimeRegistry;
-import org.slj.mqtt.sn.spi.MqttsnException;
-import org.slj.mqtt.sn.spi.MqttsnExpectationFailedException;
+import org.slj.mqtt.sn.spi.*;
 import org.slj.mqtt.sn.utils.MqttsnUtils;
 
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class MqttsnMessageQueueProcessor {
+public class MqttsnMessageQueueProcessor<T extends IMqttsnRuntimeRegistry>
+        extends MqttsnService<T> implements IMqttsnMessageQueueProcessor<T>{
 
     static Logger logger = Logger.getLogger(MqttsnMessageQueueProcessor.class.getName());
 
-    protected IMqttsnRuntimeRegistry registry;
     protected boolean clientMode;
 
-    public MqttsnMessageQueueProcessor(IMqttsnRuntimeRegistry registry, boolean clientMode){
-        this.registry = registry;
+    public MqttsnMessageQueueProcessor(boolean clientMode){
         this.clientMode = clientMode;
     }
 

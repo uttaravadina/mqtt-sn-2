@@ -42,14 +42,12 @@ import java.util.logging.Level;
 public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadService<IMqttsnGatewayRuntimeRegistry>
         implements IMqttsnGatewaySessionRegistryService {
 
-    protected MqttsnMessageQueueProcessor queueProcessor;
     protected Map<IMqttsnContext, IMqttsnSessionState> sessionLookup;
 
     @Override
     public void start(IMqttsnGatewayRuntimeRegistry runtime) throws MqttsnException {
         super.start(runtime);
         sessionLookup = Collections.synchronizedMap(new HashMap());
-        queueProcessor = new MqttsnMessageQueueProcessor(getRegistry(), false);
     }
 
     @Override
@@ -70,7 +68,7 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
         try {
             if(state.getClientState() == MqttsnClientState.CONNECTED ||
                     state.getClientState() == MqttsnClientState.AWAKE){
-                queueProcessor.process(state.getContext());
+                registry.getQueueProcessor().process(state.getContext());
             }
         } catch(Exception e){
             logger.log(Level.SEVERE, "error encountered processing messages;", e);

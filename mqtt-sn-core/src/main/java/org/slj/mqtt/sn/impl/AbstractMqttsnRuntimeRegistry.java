@@ -51,6 +51,7 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
     protected IMqttsnSubscriptionRegistry subscriptionRegistry;
     protected IMqttsnMessageStateService messageStateService;
     protected IMqttsnContextFactory contextFactory;
+    protected IMqttsnMessageQueueProcessor queueProcessor;
     protected List<IMqttsnTrafficListener> trafficListeners;
 
     public AbstractMqttsnRuntimeRegistry(MqttsnOptions options){
@@ -132,10 +133,6 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
         return messageQueue;
     }
 
-    public INetworkAddressRegistry getNetworkAddressRegistry() {
-        return networkAddressRegistry;
-    }
-
     @Override
     public IMqttsnTopicRegistry getTopicRegistry() {
         return topicRegistry;
@@ -161,8 +158,9 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
         return contextFactory;
     }
 
-    public void setContextFactory(IMqttsnContextFactory contextFactory) {
-        this.contextFactory = contextFactory;
+    @Override
+    public IMqttsnMessageQueueProcessor getQueueProcessor() {
+        return queueProcessor;
     }
 
     public AbstractMqttsnRuntimeRegistry withTrafficListener(IMqttsnTrafficListener trafficListener){
@@ -174,6 +172,11 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
             }
         }
         trafficListeners.add(trafficListener);
+        return this;
+    }
+
+    public AbstractMqttsnRuntimeRegistry withQueueProcessor(IMqttsnMessageQueueProcessor queueProcessor){
+        this.queueProcessor = queueProcessor;
         return this;
     }
 
@@ -231,5 +234,6 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
         if(messageHandler == null) throw new MqttsnRuntimeException("message handler must be bound for valid runtime");
         if(messageQueue == null) throw new MqttsnRuntimeException("message queue must be bound for valid runtime");
         if(contextFactory == null) throw new MqttsnRuntimeException("context factory must be bound for valid runtime");
+        if(queueProcessor == null) throw new MqttsnRuntimeException("queue processor must be bound for valid runtime");
     }
 }

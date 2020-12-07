@@ -26,12 +26,14 @@ package org.slj.mqtt.sn.model;
 
 import org.slj.mqtt.sn.spi.IMqttsnMessage;
 
-public class InflightMessage {
+import java.io.Serializable;
+
+public class InflightMessage implements Serializable {
 
     IMqttsnContext context;
     IMqttsnMessage message;
     QueuedPublishMessage queuedMessage;
-    MqttsnWaitToken token;
+    transient MqttsnWaitToken token;
     long time;
 
     public InflightMessage(IMqttsnContext context, IMqttsnMessage message, MqttsnWaitToken token) {

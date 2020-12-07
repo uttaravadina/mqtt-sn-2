@@ -28,11 +28,12 @@ import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.MqttsnWaitToken;
 import org.slj.mqtt.sn.model.QueuedPublishMessage;
 
+import java.util.Iterator;
 import java.util.List;
 
 public interface IMqttsnMessageQueue<T extends IMqttsnRuntimeRegistry> extends IMqttsnRegistry<T> {
 
-    List<IMqttsnContext> listContexts() throws MqttsnException;
+    Iterator<IMqttsnContext> listContexts() throws MqttsnException;
 
     int size(IMqttsnContext context) throws MqttsnException;
 

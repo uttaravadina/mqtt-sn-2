@@ -53,9 +53,9 @@ public class MqttsnInMemoryMessageQueue<T extends IMqttsnRuntimeRegistry>
     }
 
     @Override
-    public MqttsnWaitToken offer(IMqttsnContext context, QueuedPublishMessage message) throws MqttsnExpectationFailedException {
+    public MqttsnWaitToken offer(IMqttsnContext context, QueuedPublishMessage message) throws MqttsnException {
         Queue<QueuedPublishMessage> queue = getQueue(context);
-        if(queue.size() >= getMaxQueueSize()){
+        if(size(context) >= getMaxQueueSize()){
             logger.log(Level.WARNING, String.format("max queue size reached for client [%s] >= [%s]", context, queue.size()));
             throw new MqttsnExpectationFailedException("max queue size reached for client, cannot queue");
         }
@@ -87,9 +87,9 @@ public class MqttsnInMemoryMessageQueue<T extends IMqttsnRuntimeRegistry>
     }
 
     @Override
-    public List<IMqttsnContext> listContexts() throws MqttsnException {
+    public Iterator<IMqttsnContext> listContexts() throws MqttsnException {
         synchronized (queues){
-            return new ArrayList<>(queues.keySet());
+            return new ArrayList<>(queues.keySet()).iterator();
         }
     }
 
@@ -116,7 +116,7 @@ public class MqttsnInMemoryMessageQueue<T extends IMqttsnRuntimeRegistry>
         if(queue == null){
             synchronized (this){
                 if((queue = queues.get(context)) == null){
-                    queue = createQueue(context);
+                    queue = new LinkedList<>();
                     queues.put(context, queue);
                 }
             }
@@ -126,9 +126,5 @@ public class MqttsnInMemoryMessageQueue<T extends IMqttsnRuntimeRegistry>
 
     protected int getMaxQueueSize() {
         return registry.getOptions().getMaxMessagesInQueue();
-    }
-
-    protected Queue<QueuedPublishMessage> createQueue(IMqttsnContext context){
-        return new LinkedList<>();
     }
 }

@@ -24,13 +24,19 @@
 
 package org.slj.mqtt.sn.model;
 
-public class QueuedPublishMessage {
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
-    MqttsnWaitToken token;
-    String topicPath;
-    int grantedQoS;
-    int retryCount;
-    byte[] payload;
+public class QueuedPublishMessage implements Serializable {
+
+    private transient MqttsnWaitToken token;
+    private String topicPath;
+    private int grantedQoS;
+    private int retryCount;
+    private byte[] payload;
+    private boolean retained;
+    private Map<String, String> contextProperties = new HashMap<>();
 
     public QueuedPublishMessage() {
     }
@@ -40,6 +46,14 @@ public class QueuedPublishMessage {
         this.grantedQoS = grantedQoS;
         this.payload = payload;
         this.retryCount = 0;
+    }
+
+    public boolean getRetained() {
+        return retained;
+    }
+
+    public void setRetained(boolean retained) {
+        this.retained = retained;
     }
 
     public int getRetryCount() {
@@ -80,6 +94,22 @@ public class QueuedPublishMessage {
 
     public void setToken(MqttsnWaitToken token) {
         this.token = token;
+    }
+
+    public void setRetryCount(int retryCount) {
+        this.retryCount = retryCount;
+    }
+
+    public Map<String, String> getContextProperties() {
+        return contextProperties;
+    }
+
+    public void setContextProperties(Map<String, String> contextProperties) {
+        this.contextProperties = contextProperties;
+    }
+
+    public void addContextProperty(String key, String value){
+        contextProperties.put(key, value);
     }
 
     @Override

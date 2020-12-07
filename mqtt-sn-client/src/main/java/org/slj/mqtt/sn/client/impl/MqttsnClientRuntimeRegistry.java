@@ -52,6 +52,7 @@ public class MqttsnClientRuntimeRegistry extends AbstractMqttsnRuntimeRegistry i
                 withTopicRegistry(new MqttsnInMemoryTopicRegistry()).
                 withSubscriptionRegistry(new MqttsnInMemorySubscriptionRegistry()).
                 withMessageQueue(new MqttsnInMemoryMessageQueue()).
+                withQueueProcessor(new MqttsnMessageQueueProcessor(true)).
                 withMessageStateService(new MqttsnInMemoryMessageStateService());
         return registry;
     }

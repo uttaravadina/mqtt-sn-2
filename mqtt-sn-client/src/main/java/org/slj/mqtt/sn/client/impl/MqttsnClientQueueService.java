@@ -38,22 +38,18 @@ import java.util.logging.Level;
 public class MqttsnClientQueueService
         extends AbstractMqttsnBackoffThreadService<IMqttsnClientRuntimeRegistry> implements IMqttsnClientQueueService {
 
-    protected MqttsnMessageQueueProcessor processor;
-
     @Override
     public synchronized void start(IMqttsnClientRuntimeRegistry runtime) throws MqttsnException {
         super.start(runtime);
-        processor = new MqttsnMessageQueueProcessor(runtime, true);
     }
 
     @Override
     protected boolean doWork() {
         try {
-            List<IMqttsnContext> contexts = getRegistry().getMessageQueue().listContexts();
-            Iterator<IMqttsnContext> itr = contexts.iterator();
+            Iterator<IMqttsnContext> itr = getRegistry().getMessageQueue().listContexts();
             while(itr.hasNext()){
                 IMqttsnContext context = itr.next();
-                processor.process(context);
+                registry.getQueueProcessor().process(context);
             }
             return true;
         } catch(Exception e){

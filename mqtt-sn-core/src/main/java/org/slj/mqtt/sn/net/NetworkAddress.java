@@ -24,10 +24,11 @@
 
 package org.slj.mqtt.sn.net;
 
+import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.util.Objects;
 
-public class NetworkAddress {
+public class NetworkAddress implements Serializable {
 
     private final String hostAddress;
     private final int port;

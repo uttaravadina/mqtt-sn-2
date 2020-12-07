@@ -61,6 +61,7 @@ public class MqttsnGatewayRuntimeRegistry extends AbstractMqttsnRuntimeRegistry 
                 withMessageQueue(new MqttsnInMemoryMessageQueue()).
                 withContextFactory(new MqttsnContextFactory()).
                 withTopicRegistry(new MqttsnInMemoryTopicRegistry()).
+                withQueueProcessor(new MqttsnMessageQueueProcessor(false)).
                 withSubscriptionRegistry(new MqttsnInMemorySubscriptionRegistry()).
                 withMessageStateService(new MqttsnInMemoryMessageStateService());
         return registry;
