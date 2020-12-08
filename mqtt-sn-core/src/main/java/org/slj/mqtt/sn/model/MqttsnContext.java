@@ -28,8 +28,12 @@ import java.util.Objects;
 
 public class MqttsnContext implements IMqttsnContext {
 
-    private final String id;
+    private String id;
     private INetworkContext networkContext;
+
+    public MqttsnContext(){
+
+    }
 
     public MqttsnContext(INetworkContext networkContext, String id) {
         this.networkContext = networkContext;

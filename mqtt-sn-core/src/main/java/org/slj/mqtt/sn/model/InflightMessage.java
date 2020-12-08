@@ -30,33 +30,14 @@ import java.io.Serializable;
 
 public class InflightMessage implements Serializable {
 
-    IMqttsnContext context;
-    IMqttsnMessage message;
-    QueuedPublishMessage queuedMessage;
     transient MqttsnWaitToken token;
+    IMqttsnMessage message;
     long time;
 
-    public InflightMessage(IMqttsnContext context, IMqttsnMessage message, MqttsnWaitToken token) {
+    public InflightMessage(IMqttsnMessage message, MqttsnWaitToken token) {
         this.time = System.currentTimeMillis();
-        this.context = context;
         this.message = message;
         this.token = token;
-    }
-
-    public InflightMessage(IMqttsnContext context, IMqttsnMessage message, QueuedPublishMessage queuedMessage, MqttsnWaitToken token) {
-        this.time = System.currentTimeMillis();
-        this.context = context;
-        this.message = message;
-        this.queuedMessage = queuedMessage;
-        this.token = token;
-    }
-
-    public IMqttsnContext getContext(){
-        return context;
-    }
-
-    public QueuedPublishMessage getQueuedMessage() {
-        return queuedMessage;
     }
 
     public long getTime(){

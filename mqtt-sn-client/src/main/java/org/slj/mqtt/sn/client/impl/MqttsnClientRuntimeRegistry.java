@@ -26,11 +26,10 @@ package org.slj.mqtt.sn.client.impl;
 
 import org.slj.mqtt.sn.client.spi.IMqttsnClientQueueService;
 import org.slj.mqtt.sn.client.spi.IMqttsnClientRuntimeRegistry;
-import org.slj.mqtt.sn.impl.*;
-import org.slj.mqtt.sn.impl.ram.MqttsnInMemoryMessageQueue;
-import org.slj.mqtt.sn.impl.ram.MqttsnInMemoryMessageStateService;
-import org.slj.mqtt.sn.impl.ram.MqttsnInMemorySubscriptionRegistry;
-import org.slj.mqtt.sn.impl.ram.MqttsnInMemoryTopicRegistry;
+import org.slj.mqtt.sn.impl.AbstractMqttsnRuntimeRegistry;
+import org.slj.mqtt.sn.impl.MqttsnContextFactory;
+import org.slj.mqtt.sn.impl.MqttsnMessageQueueProcessor;
+import org.slj.mqtt.sn.impl.ram.*;
 import org.slj.mqtt.sn.model.MqttsnOptions;
 import org.slj.mqtt.sn.net.NetworkAddressRegistry;
 import org.slj.mqtt.sn.spi.MqttsnRuntimeException;
@@ -48,6 +47,7 @@ public class MqttsnClientRuntimeRegistry extends AbstractMqttsnRuntimeRegistry i
                 withClientQueueService(new MqttsnClientQueueService()).
                 withContextFactory(new MqttsnContextFactory()).
                 withMessageHandler(new MqttsnClientMessageHandler()).
+                withMessageRegistry(new MqttsnInMemoryMessageRegistry()).
                 withNetworkAddressRegistry(new NetworkAddressRegistry(options.getMaxNetworkAddressEntries())).
                 withTopicRegistry(new MqttsnInMemoryTopicRegistry()).
                 withSubscriptionRegistry(new MqttsnInMemorySubscriptionRegistry()).

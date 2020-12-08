@@ -13,11 +13,11 @@ import java.util.Map;
 import java.util.logging.Level;
 
 public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
-        extends MqttsnService<T>
+        extends AbstractRationalTopicService<T>
         implements IMqttsnTopicRegistry<T> {
 
     @Override
-    public TopicInfo register(IMqttsnContext context, String topicName) throws MqttsnException {
+    public TopicInfo register(IMqttsnContext context, String topicPath) throws MqttsnException {
         Map<String, Integer> map = getRegistrations(context);
         if(map.size() >= registry.getOptions().getMaxTopicsInRegistry()){
             logger.log(Level.WARNING, String.format("max number of registered topics reached for client [%s] >= [%s]", context, map.size()));
@@ -25,7 +25,7 @@ public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
         }
         synchronized (context){
             int alias = MqttsnUtils.getNextLeaseId(map.values(), Math.max(1, registry.getOptions().getAliasStartAt()));
-            addOrUpdateRegistration(context, topicName, alias);
+            addOrUpdateRegistration(context, rationalizeTopic(context, topicPath), alias);
             TopicInfo info = new TopicInfo(MqttsnConstants.TOPIC_TYPE.NORMAL,  alias);
             return info;
         }
@@ -36,20 +36,20 @@ public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
         Map<String, Integer> map = getRegistrations(context);
         if(map.containsKey(topicPath)){
             //update existing
-            addOrUpdateRegistration(context, topicPath, topicAlias);
+            addOrUpdateRegistration(context, rationalizeTopic(context, topicPath), topicAlias);
         } else {
             if(map.size() >= registry.getOptions().getMaxTopicsInRegistry()){
                 logger.log(Level.WARNING, String.format("max number of registered topics reached for client [%s] >= [%s]", context, map.size()));
                 throw new MqttsnException("max number of registered topics reached for client");
             }
-            addOrUpdateRegistration(context, topicPath, topicAlias);
+            addOrUpdateRegistration(context, rationalizeTopic(context, topicPath), topicAlias);
         }
     }
 
     @Override
     public boolean registered(IMqttsnContext context, String topicPath) throws MqttsnException {
         Map<String, Integer> map = getRegistrations(context);
-        return map.containsKey(topicPath);
+        return map.containsKey(rationalizeTopic(context, topicPath));
     }
 
     @Override
@@ -77,7 +77,7 @@ public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
             logger.log(Level.WARNING, String.format("unable to find matching topicPath in system for [%s] -> [%s]", topicInfo, context));
             throw new MqttsnExpectationFailedException("unable to find matching topicPath in system");
         }
-        return topicPath;
+        return rationalizeTopic(context, topicPath);
     }
 
     @Override
@@ -89,7 +89,7 @@ public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
                 String topicPath = itr.next();
                 Integer i = map.get(topicPath);
                 if(i != null && i.intValue() == topicAlias)
-                    return topicPath;
+                    return rationalizeTopic(context, topicPath);
             }
         }
         return null;
@@ -98,13 +98,13 @@ public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
     @Override
     public Integer lookupRegistered(IMqttsnContext context, String topicPath) throws MqttsnException {
         Map<String, Integer> map = getRegistrations(context);
-        return map.get(topicPath);
+        return map.get(rationalizeTopic(context, topicPath));
     }
 
     @Override
     public Integer lookupPredefined(IMqttsnContext context, String topicPath) throws MqttsnException {
         Map<String, Integer> predefinedMap = getPredefinedTopics(context);
-        return predefinedMap.get(topicPath);
+        return predefinedMap.get(rationalizeTopic(context, topicPath));
     }
 
     @Override
@@ -116,7 +116,7 @@ public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
                 String topicPath = itr.next();
                 Integer i = predefinedMap.get(topicPath);
                 if(i != null && i.intValue() == topicAlias)
-                    return topicPath;
+                    return rationalizeTopic(context, topicPath);
             }
         }
         return null;
@@ -124,6 +124,8 @@ public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
 
     @Override
     public TopicInfo lookup(IMqttsnContext context, String topicPath) throws MqttsnException {
+
+        topicPath = rationalizeTopic(context, topicPath);
 
         //-- check normal first
         TopicInfo info = null;

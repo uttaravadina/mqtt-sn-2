@@ -27,25 +27,33 @@ package org.slj.mqtt.sn.model;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class QueuedPublishMessage implements Serializable {
 
-    private transient MqttsnWaitToken token;
     private String topicPath;
     private int grantedQoS;
     private int retryCount;
-    private byte[] payload;
+    private UUID messageId;
     private boolean retained;
     private Map<String, String> contextProperties = new HashMap<>();
 
     public QueuedPublishMessage() {
     }
 
-    public QueuedPublishMessage(String topicPath, int grantedQoS, byte[] payload) {
+    public QueuedPublishMessage(UUID messageId, String topicPath, int grantedQoS) {
+        this.messageId = messageId;
         this.topicPath = topicPath;
         this.grantedQoS = grantedQoS;
-        this.payload = payload;
         this.retryCount = 0;
+    }
+
+    public UUID getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(UUID messageId) {
+        this.messageId = messageId;
     }
 
     public boolean getRetained() {
@@ -80,22 +88,6 @@ public class QueuedPublishMessage implements Serializable {
         this.grantedQoS = grantedQoS;
     }
 
-    public byte[] getPayload() {
-        return payload;
-    }
-
-    public void setPayload(byte[] payload) {
-        this.payload = payload;
-    }
-
-    public MqttsnWaitToken getToken() {
-        return token;
-    }
-
-    public void setToken(MqttsnWaitToken token) {
-        this.token = token;
-    }
-
     public void setRetryCount(int retryCount) {
         this.retryCount = retryCount;
     }
@@ -114,6 +106,13 @@ public class QueuedPublishMessage implements Serializable {
 
     @Override
     public String toString() {
-        return "QueuedPublishMessage";
+        return "QueuedPublishMessage{" +
+                "topicPath='" + topicPath + '\'' +
+                ", grantedQoS=" + grantedQoS +
+                ", retryCount=" + retryCount +
+                ", messageId=" + messageId +
+                ", retained=" + retained +
+                ", contextProperties=" + contextProperties +
+                '}';
     }
 }

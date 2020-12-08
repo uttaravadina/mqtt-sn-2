@@ -12,19 +12,19 @@ import java.util.Iterator;
 import java.util.Set;
 
 public abstract class AbstractSubscriptionRegistry <T extends IMqttsnRuntimeRegistry>
-        extends MqttsnService<T>
+        extends AbstractRationalTopicService<T>
         implements IMqttsnSubscriptionRegistry<T> {
 
     @Override
     public boolean subscribe(IMqttsnContext context, String topicPath, int QoS) throws MqttsnException {
-        TopicPath path = new TopicPath(topicPath);
+        TopicPath path = new TopicPath(rationalizeTopic(context, topicPath));
         return addSubscription(context, new Subscription(path, QoS));
     }
 
     @Override
     public boolean unsubscribe(IMqttsnContext context, String topicPath) throws MqttsnException {
         Set<Subscription> paths = readSubscriptions(context);
-        TopicPath path = new TopicPath(topicPath);
+        TopicPath path = new TopicPath(rationalizeTopic(context, topicPath));
         return paths.remove(new Subscription(path));
     }
 
@@ -38,7 +38,7 @@ public abstract class AbstractSubscriptionRegistry <T extends IMqttsnRuntimeRegi
                 try {
                     Subscription sub = pathItr.next();
                     TopicPath path = sub.getTopicPath();
-                    if (path.matches(topicPath)) {
+                    if (path.matches(rationalizeTopic(context, topicPath))) {
                         return sub.getQoS();
                     }
                 } catch (Exception e) {

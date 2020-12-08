@@ -27,6 +27,7 @@ package org.slj.mqtt.sn.spi;
 import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.MqttsnWaitToken;
 import org.slj.mqtt.sn.model.QueuedPublishMessage;
+import org.slj.mqtt.sn.model.TopicInfo;
 
 import java.util.Optional;
 
@@ -36,18 +37,17 @@ public interface IMqttsnMessageStateService<T extends IMqttsnRuntimeRegistry> ex
      * Dispatch a new message to the transport layer, binding it to the state service en route for tracking.
      * @param context - the recipient of the message
      * @param message - the wire message to send
-     * @param queuedPublishMessage - reference to the queues message who originated this send (when its of type Publish);
      * @throws MqttsnException
      */
-    MqttsnWaitToken sendMessage(IMqttsnContext context, IMqttsnMessage message, QueuedPublishMessage queuedPublishMessage) throws MqttsnException;
+    MqttsnWaitToken sendMessage(IMqttsnContext context, IMqttsnMessage message) throws MqttsnException;
 
     /**
      * Dispatch a new message to the transport layer, binding it to the state service en route for tracking.
      * @param context
-     * @param message
+     * @param queuedPublishMessage - reference to the queues message who originated this send (when its of type Publish);
      * @throws MqttsnException
      */
-    MqttsnWaitToken sendMessage(IMqttsnContext context, IMqttsnMessage message) throws MqttsnException;
+    MqttsnWaitToken sendMessage(IMqttsnContext context, TopicInfo info, QueuedPublishMessage queuedPublishMessage) throws MqttsnException;
 
 
     /**

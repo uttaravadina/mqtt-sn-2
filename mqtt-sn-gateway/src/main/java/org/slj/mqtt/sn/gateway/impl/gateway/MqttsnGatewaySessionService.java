@@ -113,10 +113,8 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
                     result = registry.getBrokerService().connect(state.getContext(), state.getContext().getId(), cleanSession, keepAlive);
                 } finally {
                     if(!result.isError()){
-                        if(cleanSession){
-                            //clear down all prior session state
-                            cleanSession(state.getContext());
-                        }
+                        //clear down all prior session state
+                        cleanSession(state.getContext(), cleanSession);
                         state.setKeepAlive(keepAlive);
                         state.setClientState(MqttsnClientState.CONNECTED);
                     } else {
@@ -244,15 +242,16 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
         }
     }
 
-    @Override
-    public void cleanSession(IMqttsnContext context) throws MqttsnException {
+    public void cleanSession(IMqttsnContext context, boolean deepClean) throws MqttsnException {
 
         //clear down all prior session state
         synchronized (context){
-            registry.getMessageQueue().clear(context);
-            registry.getMessageStateService().clear(context);
+            if(deepClean){
+                registry.getMessageQueue().clear(context);
+                registry.getMessageStateService().clear(context);
+                registry.getSubscriptionRegistry().clear(context);
+            }
             registry.getTopicRegistry().clear(context);
-            registry.getSubscriptionRegistry().clear(context);
         }
     }
 
@@ -286,10 +285,24 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
         //-- expand the message onto the gateway connected device queues
         List<IMqttsnContext> recipients = registry.getSubscriptionRegistry().matches(topicPath);
         logger.log(Level.INFO, String.format("receiving broker side message into [%s] sessions", recipients.size()));
+
+        //if we only have 1 reciever remove message after read
+        UUID messageId = recipients.size() > 1 ?
+                registry.getMessageRegistry().add(payload, calculateExpiry()) :
+                registry.getMessageRegistry().add(payload, true) ;
+
         for (IMqttsnContext client : recipients){
             int grantedQos = registry.getSubscriptionRegistry().getQos(client, topicPath);
             int q = Math.min(grantedQos,QoS);
-            registry.getMessageQueue().offer(client, new QueuedPublishMessage(topicPath, q, payload));
+            registry.getMessageQueue().offer(client, new QueuedPublishMessage(
+                    messageId, topicPath, q));
         }
+    }
+
+    protected Date calculateExpiry(){
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(new Date());
+        cal.add(Calendar.YEAR, 1);
+        return cal.getTime();
     }
 }

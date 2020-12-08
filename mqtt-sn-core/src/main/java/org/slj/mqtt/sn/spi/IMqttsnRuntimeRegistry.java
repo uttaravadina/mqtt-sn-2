@@ -64,5 +64,7 @@ public interface IMqttsnRuntimeRegistry {
 
     IMqttsnMessageQueueProcessor getQueueProcessor();
 
+    IMqttsnMessageRegistry getMessageRegistry();
+
     List<IMqttsnTrafficListener> getTrafficListeners();
 }

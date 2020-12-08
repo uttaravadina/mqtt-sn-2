@@ -46,11 +46,20 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
 
     @Override
     public MqttsnWaitToken sendMessage(IMqttsnContext context, IMqttsnMessage message) throws MqttsnException {
-        return sendMessage(context, message, null);
+        return sendMessageInternal(context, message, null);
     }
 
     @Override
-    public MqttsnWaitToken sendMessage(IMqttsnContext context, IMqttsnMessage message, QueuedPublishMessage queuedPublishMessage) throws MqttsnException {
+    public MqttsnWaitToken sendMessage(IMqttsnContext context, TopicInfo info, QueuedPublishMessage queuedPublishMessage) throws MqttsnException {
+
+        logger.log(Level.INFO, String.format("sending publish message with id [%s] to [%s]", queuedPublishMessage.getMessageId(), context));
+        IMqttsnMessage publish = registry.getMessageFactory().createPublish(queuedPublishMessage.getGrantedQoS(),
+                queuedPublishMessage.getRetryCount() > 1, false, info.getType(), info.getTopicId(),
+                registry.getMessageRegistry().get(queuedPublishMessage.getMessageId()));
+        return sendMessageInternal(context, publish, queuedPublishMessage);
+    }
+
+    protected MqttsnWaitToken sendMessageInternal(IMqttsnContext context, IMqttsnMessage message, QueuedPublishMessage queuedPublishMessage) throws MqttsnException {
         try {
             synchronized (context){
                 MqttsnWaitToken token = null;
@@ -68,20 +77,21 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                                 message, context));
                 boolean requiresResponse = false;
                 if((requiresResponse = registry.getMessageHandler().requiresResponse(message))){
-                    token = attach(context, message, queuedPublishMessage, false);
+                    token = markInflight(context, message, queuedPublishMessage);
                 }
                 registry.getTransport().writeToTransport(context, message);
 
-                if(queuedPublishMessage != null && !requiresResponse){
-                    //-- if we sent a message that DOESNT require a response, ensure we dont have any threads waiting on it
-                    token = queuedPublishMessage.getToken();
-                    if(token != null){
-                        synchronized (token){
-                            token.markComplete();
-                            token.notifyAll();
-                        }
-                    }
-                }
+//                when we used to support the wait on queued messages
+//                if(!requiresResponse){
+//                    //-- if we sent a message that DOESNT require a response, ensure we dont have any threads waiting on it
+//                    token = queuedPublishMessage.getToken();
+//                    if(token != null){
+//                        synchronized (token){
+//                            token.markComplete();
+//                            token.notifyAll();
+//                        }
+//                    }
+//                }
                 return token;
             }
         } catch(Exception e){
@@ -118,7 +128,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                 return Optional.ofNullable(response);
             } else {
                 logger.log(Level.WARNING, String.format("token timed out waiting for response to [%s] in [%s]",
-                        message == null ? token.getPublishMessage() : message,
+                        message,
                         MqttsnUtils.getDurationString(time)));
                 token.markError();
                 throw new MqttsnExpectationFailedException("unable to obtain response within timeout");
@@ -180,7 +190,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
             if(message instanceof MqttsnPublish){
                 if(((MqttsnPublish)message).getQoS() == 2){
                     //-- Qos 2 needs further confirmation before being sent to application
-                    attach(context, message, null, evictExistingInflight);
+                    markInflight(context, message, null);
                 } else {
                     //-- Qos 0 & 1 are confirmed on receipt of message
                     receiveConfirmedInboundPublish(context, message);
@@ -216,7 +226,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                     String topicPath = registry.getTopicRegistry().topicPath(context, info, true);
                     registry.getRuntime().messageReceived(context, topicPath, publish.getQoS(), publish.getData());
                 } else {
-                    logger.log(Level.WARNING, String.format("unable to delivery message to application no topic info!"));
+                    logger.log(Level.WARNING, String.format("unable to deliver message to application no topic info!"));
                 }
             }
         } catch(Exception e){
@@ -224,71 +234,24 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         }
     }
 
-    protected MqttsnWaitToken attach(IMqttsnContext context, IMqttsnMessage message, QueuedPublishMessage queuedPublishMessage, boolean evictExistingInflight) throws MqttsnException {
-        synchronized (context){
-            Map<Integer, InflightMessage> map = getInflightMessages(context);
-            if(evictExistingInflight && maxInflightMessageCountReached(context, map)){
-                clearInflight(context, 0);
-                logger.log(Level.WARNING, String.format("[%s] evicting inflight, giving priority to received message [%s]", context, message));
+    protected MqttsnWaitToken markInflight(IMqttsnContext context, IMqttsnMessage message, QueuedPublishMessage queuedPublishMessage) throws MqttsnException {
+        synchronized (context) {
+            InflightMessage inflight = queuedPublishMessage == null ? new InflightMessage(message, MqttsnWaitToken.from(message)) :
+                    new RequeueableInflightMessage(queuedPublishMessage, message, MqttsnWaitToken.from(message));
+
+            int msgId = WEAK_ATTACH_ID;
+            if (message.needsMsgId()) {
+                if (message.getMsgId() > 0) {
+                    msgId = message.getMsgId();
+                } else {
+                    msgId = getNextMsgId(context);
+                    message.setMsgId(msgId);
+                }
             }
 
-            if(message.needsMsgId()){
-                return _confirmedAttach(context, message, queuedPublishMessage);
-            } else {
-                return _weakAttach(context, message);
-            }
+            addInflightMessage(context, msgId, inflight);
+            return inflight.getToken();
         }
-    }
-
-    protected MqttsnWaitToken _weakAttach(IMqttsnContext context, IMqttsnMessage msg) throws MqttsnException {
-
-        Map<Integer, InflightMessage> map = getInflightMessages(context);
-        validateInflightMessageCount(context, map);
-        MqttsnWaitToken token = MqttsnWaitToken.from(msg);
-        addInflightMessage(context, WEAK_ATTACH_ID, new InflightMessage(context, msg, token));
-        logger.log(Level.INFO, String.format("attaching client message [%s] -> [%s]", WEAK_ATTACH_ID, msg == null ? "<null>" : msg));
-        return token;
-    }
-
-    protected MqttsnWaitToken _confirmedAttach(IMqttsnContext context, IMqttsnMessage msg, QueuedPublishMessage queuedPublishMessage) throws MqttsnException {
-
-        Map<Integer, InflightMessage> map = getInflightMessages(context);
-        validateInflightMessageCount(context, map);
-        //-- either create a new token from the message OR, if this message is as a result of a queued publish, use the token
-        //-- created by that
-        MqttsnWaitToken token = queuedPublishMessage != null ? queuedPublishMessage.getToken() : MqttsnWaitToken.from(msg);
-        try {
-            int msgId = 0;
-            if(msg.getMsgId() > 0){
-                msgId = msg.getMsgId();
-            } else {
-                msgId = getNextMsgId(context);
-                msg.setMsgId(msgId);
-            }
-            logger.log(Level.INFO, String.format("attaching client message [%s] -> [%s]", msgId, msg == null ? "<null>" : msg));
-            if(queuedPublishMessage != null){
-                //join the new protocol message to the queued message for locking
-                token.setMessage(msg);
-            }
-            addInflightMessage(context, msgId, new InflightMessage(context, msg, queuedPublishMessage, token));
-            return token;
-        } catch(MqttsnCodecException e){
-            throw new MqttsnException("error setting message id on message", e);
-        }
-    }
-
-    protected void validateInflightMessageCount(IMqttsnContext context, Map<Integer, InflightMessage> map) throws MqttsnException{
-        if(maxInflightMessageCountReached(context, map)){
-            throw new MqttsnException("max number of messages inflight reached for client");
-        }
-    }
-
-    protected boolean maxInflightMessageCountReached(IMqttsnContext context, Map<Integer, InflightMessage> map) throws MqttsnException{
-        if(map.size() >= registry.getOptions().getMaxMessagesInflight()){
-            logger.log(Level.WARNING, String.format("max number of messages inflight reached for client [%s] -> [%s]", context, map.size()));
-            return true;
-        }
-        return false;
     }
 
     protected Integer getNextMsgId(IMqttsnContext context) throws MqttsnException {
@@ -316,7 +279,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                     if(f != null){
                         if(evictionTime == 0 || f.getTime() + registry.getOptions().getMaxTimeInflight() < evictionTime){
                             messageItr.remove();
-                            reapInflight(f);
+                            reapInflight(context, f);
                         }
                     }
                 }
@@ -324,11 +287,11 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         }
     }
 
-    protected void reapInflight(InflightMessage inflight) throws MqttsnException {
+    protected void reapInflight(IMqttsnContext context, InflightMessage inflight) throws MqttsnException {
 
         IMqttsnMessage message = inflight.getMessage();
         logger.log(Level.WARNING, String.format("clearing message [%s] destined for [%s] aged [%s] from inflight",
-                message, inflight.getContext(), MqttsnUtils.getDurationString(System.currentTimeMillis() - inflight.getTime())));
+                message, context, MqttsnUtils.getDurationString(System.currentTimeMillis() - inflight.getTime())));
 
         MqttsnWaitToken token = inflight.getToken();
         synchronized (token){
@@ -337,16 +300,14 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         }
 
         //-- requeue if its a PUBLISH and we have a message queue bound
-        if(message instanceof MqttsnPublish){
+        if(inflight instanceof RequeueableInflightMessage){
+            RequeueableInflightMessage requeueableInflightMessage = (RequeueableInflightMessage) inflight;
             if(registry.getMessageQueue() != null &&
-                    registry.getOptions().getRequeueOnInflightTimeout() && inflight.getQueuedMessage() != null) {
-
-                logger.log(Level.INFO, String.format("re-queuing publish message [%s] for client [%s]", inflight.getContext(),
+                    registry.getOptions().getRequeueOnInflightTimeout() && requeueableInflightMessage.getQueuedPublishMessage() != null) {
+                logger.log(Level.INFO, String.format("re-queuing publish message [%s] for client [%s]", context,
                         inflight.getMessage()));
-                registry.getMessageQueue().offer(inflight.getContext(), inflight.getQueuedMessage());
+                registry.getMessageQueue().offer(context, requeueableInflightMessage.getQueuedPublishMessage());
             }
-        } else {
-            logger.log(Level.INFO, String.format("discarding non-publish message [%s] for client [%s]", inflight.getContext(), inflight.getMessage()));
         }
     }
 

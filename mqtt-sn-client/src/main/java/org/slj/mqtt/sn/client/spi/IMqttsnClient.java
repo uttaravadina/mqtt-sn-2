@@ -32,7 +32,7 @@ public interface IMqttsnClient extends Closeable {
 
     void connect(int keepAlive, boolean cleanSession) throws MqttsnException;
 
-    void publish(String topicName, int QoS, byte[] data, boolean async) throws MqttsnException;
+    void publish(String topicName, int QoS, byte[] data) throws MqttsnException;
 
     void subscribe(String topicName, int QoS) throws MqttsnException;
 

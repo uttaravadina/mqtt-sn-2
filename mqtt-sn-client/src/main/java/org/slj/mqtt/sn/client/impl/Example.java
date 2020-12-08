@@ -65,7 +65,7 @@ public class Example {
             });
             client.connect(360, true);
             client.subscribe("my/example/topic/1", 2);
-            client.publish("my/example/topic/1", 1, MqttsnUtils.arrayOf(128, (byte) 0x01), true);
+            client.publish("my/example/topic/1", 1, MqttsnUtils.arrayOf(128, (byte) 0x01));
             latch.await(30, TimeUnit.SECONDS);
         }
     }

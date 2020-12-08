@@ -32,32 +32,17 @@ public class MqttsnWaitToken {
     private volatile boolean complete = false;
     private volatile IMqttsnMessage message;
     private volatile IMqttsnMessage responseMessage;
-    private QueuedPublishMessage publishMessage;
 
     public MqttsnWaitToken(IMqttsnMessage message){
         this.message = message;
-        publishMessage = null;
-    }
-
-    public MqttsnWaitToken(QueuedPublishMessage publishMessage){
-        this.publishMessage = publishMessage;
-        this.message = null;
     }
 
     public IMqttsnMessage getMessage() {
         return message;
     }
 
-    public QueuedPublishMessage getPublishMessage() {
-        return publishMessage;
-    }
-
     public void setMessage(IMqttsnMessage message) {
         this.message = message;
-    }
-
-    public void setPublishMessage(QueuedPublishMessage publishMessage) {
-        this.publishMessage = publishMessage;
     }
 
     public IMqttsnMessage getResponseMessage() {
@@ -66,10 +51,6 @@ public class MqttsnWaitToken {
 
     public void setResponseMessage(IMqttsnMessage responseMessage) {
         this.responseMessage = responseMessage;
-    }
-
-    public static MqttsnWaitToken from(QueuedPublishMessage queuedMessage){
-        return new MqttsnWaitToken(queuedMessage);
     }
 
     public static MqttsnWaitToken from(IMqttsnMessage message){

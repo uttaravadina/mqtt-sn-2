@@ -52,6 +52,7 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
     protected IMqttsnMessageStateService messageStateService;
     protected IMqttsnContextFactory contextFactory;
     protected IMqttsnMessageQueueProcessor queueProcessor;
+    protected IMqttsnMessageRegistry messageRegistry;
     protected List<IMqttsnTrafficListener> trafficListeners;
 
     public AbstractMqttsnRuntimeRegistry(MqttsnOptions options){
@@ -149,6 +150,11 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
     }
 
     @Override
+    public IMqttsnMessageRegistry getMessageRegistry(){
+        return messageRegistry;
+    }
+
+    @Override
     public List<IMqttsnTrafficListener> getTrafficListeners() {
         return trafficListeners;
     }
@@ -162,6 +168,7 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
     public IMqttsnMessageQueueProcessor getQueueProcessor() {
         return queueProcessor;
     }
+
 
     public AbstractMqttsnRuntimeRegistry withTrafficListener(IMqttsnTrafficListener trafficListener){
         if(trafficListeners == null){
@@ -182,6 +189,11 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
 
     public AbstractMqttsnRuntimeRegistry withContextFactory(IMqttsnContextFactory contextFactory){
         this.contextFactory = contextFactory;
+        return this;
+    }
+
+    public AbstractMqttsnRuntimeRegistry withMessageRegistry(IMqttsnMessageRegistry messageRegistry){
+        this.messageRegistry = messageRegistry;
         return this;
     }
 
@@ -235,5 +247,6 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
         if(messageQueue == null) throw new MqttsnRuntimeException("message queue must be bound for valid runtime");
         if(contextFactory == null) throw new MqttsnRuntimeException("context factory must be bound for valid runtime");
         if(queueProcessor == null) throw new MqttsnRuntimeException("queue processor must be bound for valid runtime");
+        if(messageRegistry == null) throw new MqttsnRuntimeException("message registry must be bound for valid runtime");
     }
 }

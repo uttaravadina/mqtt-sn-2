@@ -49,7 +49,7 @@ public interface IMqttsnGatewaySessionRegistryService extends IMqttsnRegistry<IM
 
     void updateLastSeen(IMqttsnSessionState state);
 
-    void cleanSession(IMqttsnContext state) throws MqttsnException;
+    void cleanSession(IMqttsnContext state, boolean deepClean) throws MqttsnException;
 
     void disconnect(IMqttsnSessionState state, int duration) throws MqttsnException;
 

@@ -37,7 +37,7 @@ public interface IMqttsnMessageQueue<T extends IMqttsnRuntimeRegistry> extends I
 
     int size(IMqttsnContext context) throws MqttsnException;
 
-    MqttsnWaitToken offer(IMqttsnContext context, QueuedPublishMessage message) throws MqttsnException;
+    boolean offer(IMqttsnContext context, QueuedPublishMessage message) throws MqttsnException;
 
     QueuedPublishMessage pop(IMqttsnContext context) throws MqttsnException;
 

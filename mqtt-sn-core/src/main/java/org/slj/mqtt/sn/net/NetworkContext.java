@@ -33,6 +33,8 @@ public class NetworkContext implements INetworkContext {
     protected NetworkAddress networkAddress;
     protected int receivePort;
 
+    public NetworkContext(){}
+
     public NetworkContext(NetworkAddress networkAddress){
         this.networkAddress = networkAddress;
     }

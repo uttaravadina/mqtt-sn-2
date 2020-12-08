@@ -65,6 +65,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         callStartup(registry.getMessageStateService());
         callStartup(registry.getMessageHandler());
         callStartup(registry.getMessageQueue());
+        callStartup(registry.getMessageRegistry());
         callStartup(registry.getSubscriptionRegistry());
         callStartup(registry.getTopicRegistry());
         callStartup(((IMqttsnClientRuntimeRegistry)registry).getClientQueueService());
@@ -80,6 +81,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         callShutdown(registry.getMessageStateService());
         callShutdown(registry.getMessageHandler());
         callShutdown(registry.getMessageQueue());
+        callShutdown(registry.getMessageRegistry());
         callShutdown(registry.getSubscriptionRegistry());
         callShutdown(((IMqttsnClientRuntimeRegistry)registry).getClientQueueService());
         callShutdown(registry.getTopicRegistry());
@@ -107,14 +109,11 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     }
 
     @Override
-    public void publish(String topicName, int QoS, byte[] data, boolean blockOnConfirmation) throws MqttsnException{
+    public void publish(String topicName, int QoS, byte[] data) throws MqttsnException{
         IMqttsnSessionState state = checkSession(QoS >= 0);
-        MqttsnWaitToken token = registry.getMessageQueue().offer(state.getContext(),
-                new QueuedPublishMessage(topicName, QoS, data));
-        if(blockOnConfirmation){
-            Optional<IMqttsnMessage> response = registry.getMessageStateService().waitForCompletion(state.getContext(), token);
-            MqttsnUtils.responseCheck(token, response);
-        }
+        registry.getMessageQueue().offer(state.getContext(),
+                new QueuedPublishMessage(
+                        registry.getMessageRegistry().add(data, true), topicName, QoS));
     }
 
     @Override
@@ -296,5 +295,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         }
         return state;
     }
+
+
 }
 

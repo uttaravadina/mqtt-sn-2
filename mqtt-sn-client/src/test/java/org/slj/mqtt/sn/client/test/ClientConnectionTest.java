@@ -157,7 +157,7 @@ public class ClientConnectionTest {
                         client.subscribe(publishTopic, 2);
                         assertClientSessionState(client, MqttsnClientState.CONNECTED);
                         client.publish(publishTopic,2,
-                                payload, true);
+                                payload);
                         localLatch.await(MUTLI_CLIENT_LATCH_TIMEOUT, TimeUnit.SECONDS);
                     }
                 } catch(Exception e){

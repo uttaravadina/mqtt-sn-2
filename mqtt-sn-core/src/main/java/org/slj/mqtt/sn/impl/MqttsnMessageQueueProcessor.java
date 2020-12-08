@@ -49,9 +49,9 @@ public class MqttsnMessageQueueProcessor<T extends IMqttsnRuntimeRegistry>
     public void process(IMqttsnContext context) throws MqttsnException {
         if(registry.getMessageStateService().countInflight(context) == 0){//double check lock after sync
             if(registry.getMessageQueue().size(context) > 0){
-                QueuedPublishMessage message = registry.getMessageQueue().peek(context);
-                String topicPath = message.getTopicPath();
-                if(message != null){
+                QueuedPublishMessage queuedMessage = registry.getMessageQueue().peek(context);
+                String topicPath = queuedMessage.getTopicPath();
+                if(queuedMessage != null){
                     TopicInfo info = registry.getTopicRegistry().lookup(context, topicPath);
                     if(info == null){
                         logger.log(Level.INFO, String.format("need to register for delivery to [%s] on topic [%s]", context, topicPath));
@@ -63,18 +63,17 @@ public class MqttsnMessageQueueProcessor<T extends IMqttsnRuntimeRegistry>
                         registry.getMessageStateService().sendMessage(context, register);
                     } else {
                         //-- only deque when we have confirmed we can deliver
-                        message = registry.getMessageQueue().pop(context);
-                        message.incrementRetry();
-                        IMqttsnMessage publish = registry.getMessageFactory().createPublish(message.getGrantedQoS(),
-                                message.getRetryCount() > 1, false, info.getType(), info.getTopicId(), message.getPayload());
+                        queuedMessage = registry.getMessageQueue().pop(context);
+                        queuedMessage.incrementRetry();
+
                         logger.log(Level.INFO, String.format("sending queued message to [%s] on topic [%s]", context, topicPath));
 
                         //-- let the reaper check on delivery
                         try {
-                            registry.getMessageStateService().sendMessage(context, publish, message);
+                            registry.getMessageStateService().sendMessage(context, info, queuedMessage);
                         } catch(MqttsnException e){
-                            logger.log(Level.WARNING, String.format("unable to send message having checked inflight, detected collision, requeue and backoff"));
-                            registry.getMessageQueue().offer(context, message);
+                            logger.log(Level.WARNING, String.format("unable to send message having checked inflight, detected collision, requeue and backoff"), e);
+                            registry.getMessageQueue().offer(context, queuedMessage);
                         }
                     }
                 }

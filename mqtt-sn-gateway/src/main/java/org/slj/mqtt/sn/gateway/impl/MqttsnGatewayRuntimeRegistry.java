@@ -33,10 +33,7 @@ import org.slj.mqtt.sn.gateway.spi.gateway.IMqttsnGatewayAdvertiseService;
 import org.slj.mqtt.sn.gateway.spi.gateway.IMqttsnGatewayRuntimeRegistry;
 import org.slj.mqtt.sn.gateway.spi.gateway.IMqttsnGatewaySessionRegistryService;
 import org.slj.mqtt.sn.impl.*;
-import org.slj.mqtt.sn.impl.ram.MqttsnInMemoryMessageQueue;
-import org.slj.mqtt.sn.impl.ram.MqttsnInMemoryMessageStateService;
-import org.slj.mqtt.sn.impl.ram.MqttsnInMemorySubscriptionRegistry;
-import org.slj.mqtt.sn.impl.ram.MqttsnInMemoryTopicRegistry;
+import org.slj.mqtt.sn.impl.ram.*;
 import org.slj.mqtt.sn.model.MqttsnOptions;
 import org.slj.mqtt.sn.net.NetworkAddressRegistry;
 import org.slj.mqtt.sn.spi.MqttsnRuntimeException;
@@ -57,6 +54,7 @@ public class MqttsnGatewayRuntimeRegistry extends AbstractMqttsnRuntimeRegistry 
                 withGatewaySessionService(new MqttsnGatewaySessionService()).
                 withGatewayAdvertiseService(new MqttsnGatewayAdvertiseService()).
                 withMessageHandler(new MqttsnGatewayMessageHandler()).
+                withMessageRegistry(new MqttsnInMemoryMessageRegistry()).
                 withNetworkAddressRegistry(new NetworkAddressRegistry(options.getMaxNetworkAddressEntries())).
                 withMessageQueue(new MqttsnInMemoryMessageQueue()).
                 withContextFactory(new MqttsnContextFactory()).
