@@ -5,8 +5,7 @@ import org.slj.mqtt.sn.codec.MqttsnCodecException;
 import org.slj.mqtt.sn.model.*;
 import org.slj.mqtt.sn.spi.*;
 import org.slj.mqtt.sn.utils.MqttsnUtils;
-import org.slj.mqtt.sn.wire.version1_2.payload.MqttsnPublish;
-import org.slj.mqtt.sn.wire.version1_2.payload.MqttsnPubrel;
+import org.slj.mqtt.sn.wire.version1_2.payload.*;
 
 import java.util.*;
 import java.util.logging.Level;
@@ -16,12 +15,14 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
 
     protected static final Integer WEAK_ATTACH_ID = new Integer(MqttsnConstants.USIGNED_MAX_16 + 1);
 
-    protected Map<IMqttsnContext, List<IMqttsnMessage>> uncommittedMessages;
+    protected Map<IMqttsnContext, List<CommitOperation>> uncommittedMessages;
+    protected Set<FlushQueueOperation> flushOperations;
 
     @Override
     public void start(T runtime) throws MqttsnException {
         super.start(runtime);
         uncommittedMessages = Collections.synchronizedMap(new HashMap());
+        flushOperations = Collections.synchronizedSet(new HashSet());
     }
 
     @Override
@@ -31,13 +32,37 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         synchronized (uncommittedMessages) {
             while (itr.hasNext()) {
                 IMqttsnContext context = itr.next();
-                List<IMqttsnMessage> msgs = uncommittedMessages.get(context);
-                Iterator<IMqttsnMessage> msgItr = msgs.iterator();
+                List<CommitOperation> msgs = uncommittedMessages.get(context);
+                Iterator<CommitOperation> msgItr = msgs.iterator();
                 synchronized (msgs){
                     while(msgItr.hasNext()){
-                        confirmInboundPublish(context, msgItr.next());
-                        msgItr.remove();
+                        CommitOperation operation = msgItr.next();
+                        try {
+                            confirmPublish(operation);
+                        }
+                        catch(Exception e){
+                            logger.log(Level.SEVERE, "error committing messages to application ", e);
+                        }
+                        finally {
+                            msgItr.remove();
+                        }
                     }
+                }
+            }
+        }
+
+        Iterator<FlushQueueOperation> flushItr = flushOperations.iterator();
+        synchronized (flushOperations) {
+            while (flushItr.hasNext()) {
+                FlushQueueOperation operation = flushItr.next();
+                boolean process = operation.timestamp + getRegistry().getOptions().getMinFlushTime() < System.currentTimeMillis();
+                if(!process) continue;
+                try {
+                    registry.getQueueProcessor().process(operation.context);
+                } catch(Exception e){
+                    logger.log(Level.SEVERE, "error flushing context on state thread", e);
+                } finally {
+                    flushItr.remove();
                 }
             }
         }
@@ -78,20 +103,16 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                 boolean requiresResponse = false;
                 if((requiresResponse = registry.getMessageHandler().requiresResponse(message))){
                     token = markInflight(context, message, queuedPublishMessage);
+                    logger.log(Level.INFO, String.format("marking message inflight [%s]", message));
                 }
                 registry.getTransport().writeToTransport(context, message);
 
-//                when we used to support the wait on queued messages
-//                if(!requiresResponse){
-//                    //-- if we sent a message that DOESNT require a response, ensure we dont have any threads waiting on it
-//                    token = queuedPublishMessage.getToken();
-//                    if(token != null){
-//                        synchronized (token){
-//                            token.markComplete();
-//                            token.notifyAll();
-//                        }
-//                    }
-//                }
+                //-- the only publish that does not require an ack is QoS so send to app as delivered
+                if(!requiresResponse && message instanceof MqttsnPublish){
+                    getUncommittedMessages(context).add(
+                            CommitOperation.outbound(context, message, queuedPublishMessage.getMessageId()));
+                }
+
                 return token;
             }
         } catch(Exception e){
@@ -142,95 +163,108 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
     }
 
     @Override
-    public IMqttsnMessage notifyMessageReceived(IMqttsnContext context, IMqttsnMessage message, boolean evictExistingInflight) throws MqttsnException {
+    public IMqttsnMessage notifyMessageReceived(IMqttsnContext context, IMqttsnMessage message) throws MqttsnException {
+        synchronized (context) {
+            Map<Integer, InflightMessage> map = getInflightMessages(context);
 
-        Map<Integer, InflightMessage> map = getInflightMessages(context);
-        boolean matchedMessage = map.containsKey(message.getMsgId()) ||
-                !message.needsMsgId() && map.containsKey(WEAK_ATTACH_ID);
+            Integer msgId = message.needsMsgId() ? message.getMsgId() : WEAK_ATTACH_ID;
+            boolean matchedMessage = map.containsKey(msgId);
 
-        if(matchedMessage) {
-            if (registry.getMessageHandler().isTerminalMessage(message)) {
-                InflightMessage msg = removeInflightMessage(context, message.needsMsgId() ? message.getMsgId() : WEAK_ATTACH_ID);
-                if(!registry.getMessageHandler().validResponse(msg.getMessage(), message.getClass())){
-                    logger.log(Level.WARNING,
-                            String.format("invalid response message [%s] for [%s] -> [%s]",
-                                    message, msg.getMessage(), context));
-                    throw new MqttsnRuntimeException("invalid response received " + message.getMessageName());
+            if (matchedMessage) {
+                if (registry.getMessageHandler().isTerminalMessage(message)) {
+                    InflightMessage inflight = removeInflightMessage(context, msgId);
+                    if (!registry.getMessageHandler().validResponse(inflight.getMessage(), message.getClass())) {
+                        logger.log(Level.WARNING,
+                                String.format("invalid response message [%s] for [%s] -> [%s]",
+                                        message, inflight.getMessage(), context));
+                        throw new MqttsnRuntimeException("invalid response received " + message.getMessageName());
+                    } else {
+
+                        IMqttsnMessage confirmedMessage = inflight.getMessage();
+                        MqttsnWaitToken token = inflight.getToken();
+                        logger.log(Level.INFO,
+                                String.format("received message [%s] in response to [%s] for [%s], notifying waiting on [%s]",
+                                        message, confirmedMessage, context, token));
+
+                        if (token != null) {
+                            synchronized (token) {
+                                //-- release any waits
+                                token.setResponseMessage(message);
+                                token.markComplete();
+                                token.notifyAll();
+                            }
+                        }
+
+                        //inbound qos 2 commit
+                        if (message instanceof MqttsnPubrel){
+                            getUncommittedMessages(context).add(CommitOperation.inbound(context, confirmedMessage));
+                        }
+
+                        //outbound qos 1
+                        if(message instanceof MqttsnPuback){
+                            RequeueableInflightMessage rim = (RequeueableInflightMessage) inflight;
+                            getUncommittedMessages(context).add(CommitOperation.outbound(context, confirmedMessage,
+                                    rim.getQueuedPublishMessage().getMessageId()));
+                        }
+
+                        return confirmedMessage;
+                    }
                 } else {
-
-                    IMqttsnMessage confirmedMessage = msg.getMessage();
-                    logger.log(Level.INFO,
-                            String.format("received message [%s] in response to [%s] for [%s], notifying waiting objects",
-                                    message, confirmedMessage, context));
-
-                    synchronized (msg.getToken()) {
-                        //-- release any waits
-                        MqttsnWaitToken token = msg.getToken();
-                        token.setResponseMessage(message);
-                        token.markComplete();
-                        token.notifyAll();
-                        if(message instanceof MqttsnPubrel){
-                            //PUB REL IS THE COMMIT POINT FOR RECEIVED
-                            //QOS2 messages
-                            receiveConfirmedInboundPublish(context, confirmedMessage);
+                    //none terminal matched message.. this is fine (PUBREC or PUBREL)
+                    //outbound qos 2 commit point
+                    if(matchedMessage){
+                        if(message instanceof MqttsnPubrec){
+                            InflightMessage inflight = getInflightMessage(context, msgId);
+                            RequeueableInflightMessage rim = (RequeueableInflightMessage) inflight;
+                            getUncommittedMessages(context).add(CommitOperation.outbound(context, rim.getMessage(),
+                                    rim.getQueuedPublishMessage().getMessageId()));
                         }
                     }
-                    return confirmedMessage;
+
+                    return null;
                 }
-            }
-            else {
-                //-- none terminal matched message.. this is fine (PUBREC or PUBREL)
-                logger.log(Level.INFO, String.format("intermediary confirmation message received [%s]", message));
+            } else {
+
+                //-- received NEW message that was not associated with an inflight message
+                //-- so we need to pin it into the inflight system (if it needs confirming).
+                if (message instanceof MqttsnPublish) {
+                    if (((MqttsnPublish) message).getQoS() == 2) {
+                        //-- Qos 2 needs further confirmation before being sent to application
+                        markInflight(context, message, null);
+                    } else {
+                        //-- Qos 0 & 1 are inbound are confirmed on receipt of message
+                        getUncommittedMessages(context).add(CommitOperation.inbound(context, message));
+                    }
+                } else {
+                    if (registry.getMessageHandler().isTerminalMessage(message)) {
+                        logger.log(Level.WARNING, String.format("received terminal message without matching originated [%s]", message));
+                    }
+                }
+
                 return null;
             }
-        } else {
-
-            //-- received NEW message that was not associated with an inflight message
-            //-- so we need to pin it into the inflight system (if it needs confirming).
-            if(message instanceof MqttsnPublish){
-                if(((MqttsnPublish)message).getQoS() == 2){
-                    //-- Qos 2 needs further confirmation before being sent to application
-                    markInflight(context, message, null);
-                } else {
-                    //-- Qos 0 & 1 are confirmed on receipt of message
-                    receiveConfirmedInboundPublish(context, message);
-                }
-            }
-            return null;
         }
     }
 
-    /**
-     * Messages received and confirmed through the state service should NOT block the
-     * transport layer notifying the application of inbound messages, so pre-commit them
-     * for processing on the main worker thread
-     */
-    protected void receiveConfirmedInboundPublish(IMqttsnContext context, IMqttsnMessage message){
-        if(message instanceof MqttsnPublish){
-            MqttsnPublish publish = (MqttsnPublish) message;
-            List<IMqttsnMessage> list = getUncommittedMessages(context);
-            list.add(publish);
-        } else {
-            throw new MqttsnRuntimeException("unable to received confirmed non-publish message");
-        }
-    }
-
-    protected void confirmInboundPublish(IMqttsnContext context, IMqttsnMessage message) {
+    protected void confirmPublish(CommitOperation operation) {
         try {
             //commit messages to runtime if its a publish
-            if(message instanceof MqttsnPublish){
-                MqttsnPublish publish = (MqttsnPublish) message;
-                TopicInfo info =
-                        registry.getTopicRegistry().normalize((byte) publish.getTopicType(), publish.getTopicData(), false);
-                if(info != null){
-                    String topicPath = registry.getTopicRegistry().topicPath(context, info, true);
+            IMqttsnContext context = operation.context;
+            MqttsnPublish publish = (MqttsnPublish) operation.publish;
+            TopicInfo info =
+                    registry.getTopicRegistry().normalize((byte) publish.getTopicType(), publish.getTopicData(), false);
+            if(info != null){
+                String topicPath = registry.getTopicRegistry().topicPath(context, info, true);
+                if(operation.inbound){
                     registry.getRuntime().messageReceived(context, topicPath, publish.getQoS(), publish.getData());
                 } else {
-                    logger.log(Level.WARNING, String.format("unable to deliver message to application no topic info!"));
+                    registry.getRuntime().messageSent(context, operation.messageId, topicPath, publish.getQoS(), publish.getData());
                 }
+            } else {
+                logger.log(Level.WARNING, String.format("unable to deliver message to application no topic info!"));
             }
         } catch(Exception e){
-            logger.log(Level.SEVERE, String.format("error committing message to application;", e));
+            logger.log(Level.SEVERE, String.format("error committing message to application;"), e);
         }
     }
 
@@ -259,7 +293,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         Map<Integer, InflightMessage> map = getInflightMessages(context);
         int startAt = Math.max(1, registry.getOptions().getMsgIdStartAt());
         Set<Integer> set = map.keySet();
-        for (int i = registry.getOptions().getMsgIdStartAt();
+        for (int i = startAt;
              i < MqttsnConstants.USIGNED_MAX_16; i++){
             if(! set.contains(new Integer(i))){
                 return i;
@@ -317,8 +351,8 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         return map == null ? 0 : map.size();
     }
 
-    protected List<IMqttsnMessage> getUncommittedMessages(IMqttsnContext context){
-        List<IMqttsnMessage> list = uncommittedMessages.get(context);
+    protected List<CommitOperation> getUncommittedMessages(IMqttsnContext context){
+        List<CommitOperation> list = uncommittedMessages.get(context);
         if(list == null){
             synchronized (this){
                 if((list = uncommittedMessages.get(context)) == null){
@@ -330,9 +364,72 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         return list;
     }
 
+    @Override
+    public void scheduleFlush(IMqttsnContext context) throws MqttsnException {
+        logger.log(Level.INFO, String.format("schedule flush to [%s]", context));
+        flushOperations.add(new FlushQueueOperation(context, System.currentTimeMillis()));
+    }
+
+    @Override
+    public boolean canReceive(IMqttsnContext context) throws MqttsnException {
+        return countInflight(context) == 0;
+    }
+
     protected abstract InflightMessage removeInflightMessage(IMqttsnContext context, Integer messageId) throws MqttsnException ;
 
     protected abstract void addInflightMessage(IMqttsnContext context, Integer messageId, InflightMessage message) throws MqttsnException ;
 
+    protected abstract InflightMessage getInflightMessage(IMqttsnContext context, Integer messageId) throws MqttsnException ;
+
     protected abstract Map<Integer, InflightMessage>  getInflightMessages(IMqttsnContext context) throws MqttsnException;
+
+    static class CommitOperation {
+
+        protected IMqttsnMessage publish;
+        protected IMqttsnContext context;
+        protected long timestamp;
+        protected UUID messageId;
+        protected boolean inbound = true;
+
+        public CommitOperation(IMqttsnMessage publish, IMqttsnContext context, long timestamp, boolean inbound) {
+            this.publish = publish;
+            this.context = context;
+            this.timestamp = timestamp;
+            this.inbound = inbound;
+        }
+
+        public static CommitOperation inbound(IMqttsnContext context, IMqttsnMessage publish){
+            return new CommitOperation(publish, context, System.currentTimeMillis(), true);
+        }
+
+        public static CommitOperation outbound(IMqttsnContext context, IMqttsnMessage publish, UUID messageId){
+            CommitOperation c = new CommitOperation(publish, context, System.currentTimeMillis(), false);
+            c.messageId = messageId;
+            return c;
+        }
+    }
+
+    static class FlushQueueOperation {
+
+        protected IMqttsnContext context;
+        protected long timestamp;
+
+        public FlushQueueOperation(IMqttsnContext context, long timestamp){
+            this.context = context;
+            this.timestamp = timestamp;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            FlushQueueOperation that = (FlushQueueOperation) o;
+            return Objects.equals(context, that.context);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(context);
+        }
+    }
 }

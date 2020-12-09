@@ -47,7 +47,8 @@ public class MqttsnMessageQueueProcessor<T extends IMqttsnRuntimeRegistry>
     }
 
     public void process(IMqttsnContext context) throws MqttsnException {
-        if(registry.getMessageStateService().countInflight(context) == 0){//double check lock after sync
+        logger.log(Level.FINE, String.format("processing queue for [%s]", context));
+        if(registry.getMessageStateService().canReceive(context)){//double check lock after sync
             if(registry.getMessageQueue().size(context) > 0){
                 QueuedPublishMessage queuedMessage = registry.getMessageQueue().peek(context);
                 String topicPath = queuedMessage.getTopicPath();
@@ -78,6 +79,10 @@ public class MqttsnMessageQueueProcessor<T extends IMqttsnRuntimeRegistry>
                     }
                 }
             }
+        }
+        else {
+            //if we have a message inflight we should schedule another attempt at sending
+            registry.getMessageStateService().scheduleFlush(context);
         }
     }
 }

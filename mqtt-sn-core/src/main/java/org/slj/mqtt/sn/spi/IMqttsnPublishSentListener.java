@@ -22,33 +22,13 @@
  * under the License.
  */
 
-package org.slj.mqtt.sn.client.spi;
+package org.slj.mqtt.sn.spi;
 
-import org.slj.mqtt.sn.spi.IMqttsnPublishReceivedListener;
-import org.slj.mqtt.sn.spi.IMqttsnPublishSentListener;
-import org.slj.mqtt.sn.spi.MqttsnException;
+import org.slj.mqtt.sn.model.IMqttsnContext;
 
-import java.io.Closeable;
+import java.util.UUID;
 
-public interface IMqttsnClient extends Closeable {
+public interface IMqttsnPublishSentListener {
 
-    void connect(int keepAlive, boolean cleanSession) throws MqttsnException;
-
-    void publish(String topicName, int QoS, byte[] data) throws MqttsnException;
-
-    void subscribe(String topicName, int QoS) throws MqttsnException;
-
-    void unsubscribe(String topicName) throws MqttsnException;
-
-    void sleep(int keepAlive) throws MqttsnException;
-
-    void wake() throws MqttsnException;
-
-    void disconnect() throws MqttsnException;
-
-    void registerSentListener(IMqttsnPublishSentListener listener);
-
-    void registerReceivedListener(IMqttsnPublishReceivedListener listener);
-
+    void sent(IMqttsnContext context, UUID messageId, String topicName, int QoS, byte[] data);
 }
-

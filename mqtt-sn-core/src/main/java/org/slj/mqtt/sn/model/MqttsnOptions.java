@@ -47,12 +47,14 @@ public class MqttsnOptions {
     public static final int DEFAULT_MAX_NETWORK_ADDRESS_ENTRIES = 1024;
     public static final int DEFAULT_MAX_WAIT = 10000;
     public static final int DEFAULT_MAX_TIME_INFLIGHT = 30000;
+    public static final int DEFAULT_MIN_FLUSH_TIME = 1000;
     public static final int DEFAULT_SEARCH_GATEWAY_RADIUS = 2;
 
     private String contextId;
     private boolean blockSendOnPreviousConfirmation = DEFAULT_BLOCK_SEND_ON_PREVIOUS_CONFIRMATION;
     private boolean threadHandoffFromTransport = DEFAULT_THREAD_HANDOFF_ENABLED;
     private boolean enableDiscovery = DEFAULT_DISCOVERY_ENABLED;
+    private int minFlushTime = DEFAULT_MIN_FLUSH_TIME;
     private int maxTopicsInRegistry = DEFAULT_MAX_TOPICS_IN_REGISTRY;
     private int msgIdStartAt = DEFAULT_MSG_ID_STARTS_AT;
     private int aliasStartAt = DEFAULT_ALIAS_STARTS_AT;
@@ -67,6 +69,11 @@ public class MqttsnOptions {
 
     private Map<String, Integer> predefinedTopics;
     private Map<String, NetworkAddress> networkAddressEntries;
+
+    public MqttsnOptions withMinFlushTime(int minFlushTime){
+        this.minFlushTime = minFlushTime;
+        return this;
+    }
 
     public MqttsnOptions withSearchGatewayRadius(int searchGatewayRadius){
         this.searchGatewayRadius = searchGatewayRadius;
@@ -237,5 +244,9 @@ public class MqttsnOptions {
 
     public int getSearchGatewayRadius() {
         return searchGatewayRadius;
+    }
+
+    public int getMinFlushTime() {
+        return minFlushTime;
     }
 }

@@ -26,16 +26,12 @@ package org.slj.mqtt.sn.client.impl;
 
 import org.slj.mqtt.sn.client.spi.IMqttsnClient;
 import org.slj.mqtt.sn.client.spi.IMqttsnClientRuntimeRegistry;
-import org.slj.mqtt.sn.client.spi.IMqttsnPublishReceivedListener;
 import org.slj.mqtt.sn.impl.AbstractMqttsnRuntime;
 import org.slj.mqtt.sn.model.*;
 import org.slj.mqtt.sn.spi.*;
 import org.slj.mqtt.sn.utils.MqttsnUtils;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -43,11 +39,6 @@ import java.util.logging.Level;
 public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient {
 
     private volatile MqttsnSessionState state;
-    private List<IMqttsnPublishReceivedListener> listeners;
-
-    public MqttsnClient(){
-        listeners = Collections.synchronizedList(new ArrayList<>());
-    }
 
     @Override
     protected void startupServices(IMqttsnRuntimeRegistry registry) throws MqttsnException {
@@ -66,22 +57,24 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         callStartup(registry.getMessageHandler());
         callStartup(registry.getMessageQueue());
         callStartup(registry.getMessageRegistry());
+        callStartup(registry.getContextFactory());
         callStartup(registry.getSubscriptionRegistry());
         callStartup(registry.getTopicRegistry());
         callStartup(((IMqttsnClientRuntimeRegistry)registry).getClientQueueService());
         callStartup(registry.getQueueProcessor());
         callStartup(registry.getTransport());
+
     }
 
     @Override
     protected void stopServices(IMqttsnRuntimeRegistry registry) throws MqttsnException {
-        listeners.clear();
         callShutdown(registry.getTransport());
         callShutdown(registry.getQueueProcessor());
         callShutdown(registry.getMessageStateService());
         callShutdown(registry.getMessageHandler());
         callShutdown(registry.getMessageQueue());
         callShutdown(registry.getMessageRegistry());
+        callShutdown(registry.getContextFactory());
         callShutdown(registry.getSubscriptionRegistry());
         callShutdown(((IMqttsnClientRuntimeRegistry)registry).getClientQueueService());
         callShutdown(registry.getTopicRegistry());
@@ -231,11 +224,6 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     }
 
     @Override
-    public void messageReceived(IMqttsnContext context, String topicName, int QoS, byte[] payload) {
-        listeners.stream().forEach(p -> p.receive(topicName, QoS, payload));
-    }
-
-    @Override
     public void disconnectReceived(IMqttsnContext context) {
         try {
             logger.log(Level.SEVERE, String.format("unsolicited disconnect received from gateway [%s]", context));
@@ -261,12 +249,6 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
             logger.log(Level.SEVERE, "operation could not be completed, error in response");
             throw e;
         }
-    }
-
-    @Override
-    public void registerListener(IMqttsnPublishReceivedListener listener) {
-        if(listener != null && !listeners.contains(listener))
-            listeners.add(listener);
     }
 
     protected MqttsnSessionState checkSession(boolean validate) throws MqttsnException {
@@ -295,7 +277,5 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         }
         return state;
     }
-
-
 }
 

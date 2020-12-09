@@ -54,17 +54,14 @@ public interface IMqttsnMessageStateService<T extends IMqttsnRuntimeRegistry> ex
      * Notify into the state service that a new message has arrived from the transport layer.
      * @param context - the context from which the message was received
      * @param message - the message received from the transport layer
-     * @param evictExistingInflight - where a messages is already inflight, should this message evict the inflight message and replace it (happens when collisions
-     *                              occur)
      * @return the messsage (if any) that was confirmed by the receipt of the inbound message
      * @throws MqttsnException
      */
-    IMqttsnMessage notifyMessageReceived(IMqttsnContext context, IMqttsnMessage message, boolean evictExistingInflight) throws MqttsnException;
+    IMqttsnMessage notifyMessageReceived(IMqttsnContext context, IMqttsnMessage message) throws MqttsnException;
 
     /**
      * Join the message sent in waiting for the subsequent confirmation if it needs one
      * @param context - The context to whom you are speaking
-     * @param message - The message sent for which you are awaiting a reply
      * @return An optional which will contain either the confirmation message associated with the
      * message supplied OR optional NULL where the message does not require a reply
      * @throws MqttsnExpectationFailedException - When no confirmation was recieved in the time period
@@ -72,5 +69,9 @@ public interface IMqttsnMessageStateService<T extends IMqttsnRuntimeRegistry> ex
      */
     Optional<IMqttsnMessage> waitForCompletion(IMqttsnContext context, MqttsnWaitToken token) throws MqttsnExpectationFailedException;
 
+    boolean canReceive(IMqttsnContext context) throws MqttsnException ;
+
     int countInflight(IMqttsnContext context) throws MqttsnException ;
+
+    void scheduleFlush(IMqttsnContext context) throws MqttsnException ;
 }

@@ -27,13 +27,14 @@ package org.slj.mqtt.sn.client.impl;
 import org.slj.mqtt.sn.MqttsnConstants;
 import org.slj.mqtt.sn.codec.MqttsnCodecs;
 import org.slj.mqtt.sn.impl.AbstractMqttsnRuntimeRegistry;
+import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.MqttsnOptions;
 import org.slj.mqtt.sn.net.MqttsnUdpOptions;
 import org.slj.mqtt.sn.net.MqttsnUdpTransport;
 import org.slj.mqtt.sn.net.NetworkAddress;
 import org.slj.mqtt.sn.utils.MqttsnUtils;
 
-import java.net.InetAddress;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -57,9 +58,16 @@ public class Example {
         CountDownLatch latch = new CountDownLatch(1);
         try (MqttsnClient client = new MqttsnClient()) {
             client.start(registry);
-            client.registerListener((String topic, int qos, byte[] data) -> {
+            client.registerReceivedListener((IMqttsnContext context, String topic, int qos, byte[] data) -> {
                 receiveCounter.incrementAndGet();
                 System.err.println(String.format("received message [%s] [%s]",
+                        receiveCounter.get(), new String(data, MqttsnConstants.CHARSET)));
+                latch.countDown();
+            });
+
+            client.registerSentListener((IMqttsnContext context, UUID messageId, String topic, int qos, byte[] data) -> {
+                receiveCounter.incrementAndGet();
+                System.err.println(String.format("sent message [%s] [%s]",
                         receiveCounter.get(), new String(data, MqttsnConstants.CHARSET)));
                 latch.countDown();
             });

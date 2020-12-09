@@ -58,21 +58,9 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
                 IMqttsnContext context = itr.next();
                 IMqttsnSessionState state = sessionLookup.get(context);
                 deamon_validateKeepAlive(state);
-                deamon_processMessages(state);
             }
         }
         return true;
-    }
-
-    protected void deamon_processMessages(IMqttsnSessionState state) {
-        try {
-            if(state.getClientState() == MqttsnClientState.CONNECTED ||
-                    state.getClientState() == MqttsnClientState.AWAKE){
-                registry.getQueueProcessor().process(state.getContext());
-            }
-        } catch(Exception e){
-            logger.log(Level.SEVERE, "error encountered processing messages;", e);
-        }
     }
 
     protected void deamon_validateKeepAlive(IMqttsnSessionState state){
@@ -247,10 +235,17 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
         //clear down all prior session state
         synchronized (context){
             if(deepClean){
+                //-- the queued messages
                 registry.getMessageQueue().clear(context);
-                registry.getMessageStateService().clear(context);
+
+                //-- the subscriptions
                 registry.getSubscriptionRegistry().clear(context);
             }
+
+            //-- inflight messages & protocol messages
+            registry.getMessageStateService().clear(context);
+
+            //-- topic registrations
             registry.getTopicRegistry().clear(context);
         }
     }

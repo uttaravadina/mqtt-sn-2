@@ -114,8 +114,8 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
                 }
             }
             registry.getMessageHandler().receiveMessage(networkContext.getMqttsnContext(), message);
-        } catch(MqttsnException | NetworkRegistryException e){
-            logger.log(Level.SEVERE, "error encountered receiving message from transport", e);
+        } catch(Throwable t){
+            logger.log(Level.SEVERE, "error receiving message from transport", t);
         }
     }
 

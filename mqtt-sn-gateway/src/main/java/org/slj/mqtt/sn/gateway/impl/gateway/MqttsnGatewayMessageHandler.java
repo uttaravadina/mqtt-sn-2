@@ -36,6 +36,7 @@ import org.slj.mqtt.sn.model.MqttsnClientState;
 import org.slj.mqtt.sn.model.TopicInfo;
 import org.slj.mqtt.sn.spi.IMqttsnMessage;
 import org.slj.mqtt.sn.spi.MqttsnException;
+import org.slj.mqtt.sn.utils.MqttsnUtils;
 import org.slj.mqtt.sn.wire.version1_2.payload.*;
 
 import java.util.Set;
@@ -91,6 +92,27 @@ public class MqttsnGatewayMessageHandler
             IMqttsnSessionState sessionState = getSessionState(context);
             if(sessionState != null){
                 registry.getGatewaySessionService().updateLastSeen(sessionState);
+
+            }
+        } catch(MqttsnInvalidSessionStateException e){
+            //-- a disconnect will mean theres no session to update
+        }
+    }
+
+    @Override
+    protected void afterResponse(IMqttsnContext context, IMqttsnMessage messageIn, IMqttsnMessage messageOut) throws MqttsnException {
+
+        try {
+            IMqttsnSessionState sessionState = getSessionState(context);
+            if(sessionState != null){
+                //active session means we can try and see if there is anything to flush here if its a terminal message
+                if(messageIn != null && isTerminalMessage(messageIn) && !messageIn.isErrorMessage() ||
+                        messageOut != null && isTerminalMessage(messageOut) && !messageOut.isErrorMessage() ){
+                    if(MqttsnUtils.in(sessionState.getClientState(),
+                            MqttsnClientState.CONNECTED, MqttsnClientState.AWAKE)) {
+                        registry.getMessageStateService().scheduleFlush(context);
+                    }
+                }
             }
         } catch(MqttsnInvalidSessionStateException e){
             //-- a disconnect will mean theres no session to update

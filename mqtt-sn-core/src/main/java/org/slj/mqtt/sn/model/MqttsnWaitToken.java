@@ -74,4 +74,14 @@ public class MqttsnWaitToken {
         this.complete = true;
         error = false;
     }
+
+    @Override
+    public String toString() {
+        return "MqttsnWaitToken{" +
+                "error=" + error +
+                ", complete=" + complete +
+                ", message=" + message +
+                ", responseMessage=" + responseMessage +
+                '}';
+    }
 }

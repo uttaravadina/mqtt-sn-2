@@ -22,9 +22,11 @@
  * under the License.
  */
 
-package org.slj.mqtt.sn.client.spi;
+package org.slj.mqtt.sn.spi;
+
+import org.slj.mqtt.sn.model.IMqttsnContext;
 
 public interface IMqttsnPublishReceivedListener {
 
-    void receive(String topicName, int QoS, byte[] data);
+    void receive(IMqttsnContext context, String topicName, int QoS, byte[] data);
 }

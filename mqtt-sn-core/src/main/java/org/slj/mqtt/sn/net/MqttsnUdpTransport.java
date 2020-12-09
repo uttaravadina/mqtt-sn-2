@@ -73,7 +73,7 @@ public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
                     NetworkAddress address = NetworkAddress.from(p.getPort(), p.getAddress().getHostAddress());
                     INetworkContext context = registry.getNetworkRegistry().getContext(address);
                     if(context == null){
-                        logger.log(Level.INFO, String.format("creating new [%s] context for [%s]", threadName, address));
+                        logger.log(Level.FINE, String.format("creating new [%s] context for [%s]", threadName, address));
                         context = new NetworkContext(address, null);
                     }
                     context.setReceivePort(localSocket.getLocalPort());

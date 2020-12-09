@@ -25,11 +25,13 @@
 package org.slj.mqtt.sn.impl;
 
 import org.slj.mqtt.sn.model.IMqttsnContext;
-import org.slj.mqtt.sn.spi.IMqttsnRuntimeRegistry;
-import org.slj.mqtt.sn.spi.IMqttsnService;
-import org.slj.mqtt.sn.spi.MqttsnException;
+import org.slj.mqtt.sn.spi.*;
 import org.slj.mqtt.sn.model.MqttsnOptions;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -40,6 +42,12 @@ public abstract class AbstractMqttsnRuntime {
 
     protected Logger logger = Logger.getLogger(getClass().getName());
     protected IMqttsnRuntimeRegistry registry;
+
+    protected List<IMqttsnPublishReceivedListener> receivedListeners
+            = Collections.synchronizedList(new ArrayList<>());
+    protected List<IMqttsnPublishSentListener> sentListeners
+            = Collections.synchronizedList(new ArrayList<>());
+
     protected CountDownLatch startupLatch, runtimeLatch;
     protected volatile boolean running = false;
     protected long startedAt;
@@ -80,6 +88,8 @@ public abstract class AbstractMqttsnRuntime {
             logger.log(Level.INFO, "stopping mqttsn-environment..");
             stopServices(registry);
             running = false;
+            receivedListeners.clear();
+            sentListeners.clear();
         }
     }
 
@@ -125,16 +135,30 @@ public abstract class AbstractMqttsnRuntime {
     }
 
     protected void setupEnvironment(){
-
-//        System.setProperty("java.util.logging.ConsoleHandler.formatter","org.slj.mqtt.sn.impl.MqttsnLogFormatter");
         System.setProperty("java.util.logging.SimpleFormatter.format", "[%1$tc] %4$s %2$s - %5$s %6$s%n");
     }
 
     public void messageReceived(IMqttsnContext context, String topicName, int QoS, byte[] payload){
-        logger.log(Level.INFO, String.format("publish received by application [%s]", topicName));
+        logger.log(Level.FINE, String.format("publish received by application [%s]", topicName));
+        receivedListeners.stream().forEach(p -> p.receive(context, topicName, QoS, payload));
+    }
+
+    public void messageSent(IMqttsnContext context, UUID messageId, String topicName, int QoS, byte[] payload){
+        logger.log(Level.FINE, String.format("sent confirmed by application [%s]", topicName));
+        sentListeners.stream().forEach(p -> p.sent(context, messageId, topicName, QoS, payload));
     }
 
     public void disconnectReceived(IMqttsnContext context){
         logger.log(Level.INFO, String.format("unsolicited disconnected received by application"));
+    }
+
+    public void registerReceivedListener(IMqttsnPublishReceivedListener listener) {
+        if(listener != null && !receivedListeners.contains(listener))
+            receivedListeners.add(listener);
+    }
+
+    public void registerSentListener(IMqttsnPublishSentListener listener) {
+        if(listener != null && !sentListeners.contains(listener))
+            sentListeners.add(listener);
     }
 }

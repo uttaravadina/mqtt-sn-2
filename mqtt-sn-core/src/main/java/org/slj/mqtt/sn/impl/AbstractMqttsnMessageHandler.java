@@ -157,7 +157,7 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
 
         if(registry.getMessageStateService() != null){
             originatingMessage =
-                    registry.getMessageStateService().notifyMessageReceived(context, message, true);
+                    registry.getMessageStateService().notifyMessageReceived(context, message);
             if(originatingMessage != null){
                 logger.log(Level.INFO, String.format("mqtt-sn handler [%s] inbound message [%s] confirmed [%s]",
                         context, message, originatingMessage));
@@ -170,6 +170,7 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
                 response = handleConnect(context, message);
                 break;
             case MqttsnConstants.CONNACK:
+                validateOriginatingMessage(context, originatingMessage, message);
                 handleConnack(context, originatingMessage, message);
                 break;
             case MqttsnConstants.PUBLISH:
@@ -182,9 +183,11 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
                 response = handlePubrel(context, message);
                 break;
             case MqttsnConstants.PUBACK:
+                validateOriginatingMessage(context, originatingMessage, message);
                 handlePuback(context, originatingMessage, message);
                 break;
             case MqttsnConstants.PUBCOMP:
+                validateOriginatingMessage(context, originatingMessage, message);
                 handlePubcomp(context, originatingMessage, message);
                 break;
             case MqttsnConstants.SUBSCRIBE:
@@ -194,21 +197,25 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
                 response = handleUnsubscribe(context, message);
                 break;
             case MqttsnConstants.UNSUBACK:
+                validateOriginatingMessage(context, originatingMessage, message);
                 handleUnsuback(context, originatingMessage, message);
                 break;
             case MqttsnConstants.SUBACK:
+                validateOriginatingMessage(context, originatingMessage, message);
                 handleSuback(context, originatingMessage, message);
                 break;
             case MqttsnConstants.REGISTER:
                 response = handleRegister(context, message);
                 break;
             case MqttsnConstants.REGACK:
+                validateOriginatingMessage(context, originatingMessage, message);
                 handleRegack(context, originatingMessage, message);
                 break;
             case MqttsnConstants.PINGREQ:
                 response = handlePingreq(context, message);
                 break;
             case MqttsnConstants.PINGRESP:
+                validateOriginatingMessage(context, originatingMessage, message);
                 handlePingresp(context, originatingMessage, message);
                 break;
             case MqttsnConstants.DISCONNECT:
@@ -264,11 +271,25 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
 
             handleResponse(context, response);
         }
+
+        afterResponse(context, message, response);
     }
 
     protected abstract void beforeHandle(IMqttsnContext context, IMqttsnMessage message) throws MqttsnException;
 
     protected abstract void afterHandle(IMqttsnContext context, IMqttsnMessage message, IMqttsnMessage response) throws MqttsnException;
+
+    protected void afterResponse(IMqttsnContext context, IMqttsnMessage message, IMqttsnMessage response) throws MqttsnException {
+
+    }
+
+    protected void validateOriginatingMessage(IMqttsnContext context, IMqttsnMessage originatingMessage, IMqttsnMessage message)
+        throws MqttsnExpectationFailedException{
+        if(originatingMessage == null){
+            logger.log(Level.SEVERE, String.format("[%s] no originating message found for acknowledgement [%s]", context, message));
+            throw new MqttsnExpectationFailedException("no originating message found for acknowledgement");
+        }
+    }
 
     protected void handleResponse(IMqttsnContext context, IMqttsnMessage response)
             throws MqttsnException {

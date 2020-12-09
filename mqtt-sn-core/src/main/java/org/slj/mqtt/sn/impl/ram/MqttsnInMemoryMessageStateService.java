@@ -30,10 +30,7 @@ import org.slj.mqtt.sn.model.InflightMessage;
 import org.slj.mqtt.sn.spi.IMqttsnRuntimeRegistry;
 import org.slj.mqtt.sn.spi.MqttsnException;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 
 public class MqttsnInMemoryMessageStateService <T extends IMqttsnRuntimeRegistry>
@@ -75,12 +72,26 @@ public class MqttsnInMemoryMessageStateService <T extends IMqttsnRuntimeRegistry
 
     @Override
     protected InflightMessage removeInflightMessage(IMqttsnContext context, Integer messageId) throws MqttsnException {
-        return getInflightMessages(context).remove(messageId);
+        InflightMessage message = getInflightMessage(context, messageId);
+        if(message != null){
+            Map<Integer, InflightMessage> map = getInflightMessages(context);
+            synchronized (map){
+                getInflightMessages(context).remove(messageId);
+            }
+        }
+        return message;
     }
 
     @Override
     protected void addInflightMessage(IMqttsnContext context, Integer messageId, InflightMessage message) throws MqttsnException {
-        getInflightMessages(context).put(messageId, message);
+        Map<Integer, InflightMessage> map = getInflightMessages(context);
+        synchronized (map){
+            map.put(messageId, message);
+        }
+    }
+
+    protected InflightMessage getInflightMessage(IMqttsnContext context, Integer messageId) throws MqttsnException {
+        return getInflightMessages(context).get(messageId);
     }
 
     @Override
@@ -94,6 +105,7 @@ public class MqttsnInMemoryMessageStateService <T extends IMqttsnRuntimeRegistry
                 }
             }
         }
+        logger.log(Level.FINE, String.format("inflight for [%s] is [%s] -> [%s]", context, Objects.toString(map), System.identityHashCode(map)));
         return map;
     }
 }

@@ -2,7 +2,6 @@ package org.slj.mqtt.sn.impl;
 
 import org.slj.mqtt.sn.MqttsnConstants;
 import org.slj.mqtt.sn.model.IMqttsnContext;
-import org.slj.mqtt.sn.model.MqttsnContext;
 import org.slj.mqtt.sn.model.TopicInfo;
 import org.slj.mqtt.sn.spi.*;
 import org.slj.mqtt.sn.utils.MqttsnUtils;
@@ -33,6 +32,8 @@ public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
 
     @Override
     public void register(IMqttsnContext context, String topicPath, int topicAlias) throws MqttsnException {
+
+        logger.log(Level.INFO, String.format("registering topic path [%s] -> [%s]", topicPath, topicAlias));
         Map<String, Integer> map = getRegistrations(context);
         if(map.containsKey(topicPath)){
             //update existing

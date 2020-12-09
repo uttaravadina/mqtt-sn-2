@@ -51,4 +51,17 @@ public class InflightMessage implements Serializable {
     public MqttsnWaitToken getToken() {
         return token;
     }
+
+    public void setTime(long time) {
+        this.time = time;
+    }
+
+    @Override
+    public String toString() {
+        return "InflightMessage{" +
+                "token=" + token +
+                ", message=" + message +
+                ", time=" + time +
+                '}';
+    }
 }
