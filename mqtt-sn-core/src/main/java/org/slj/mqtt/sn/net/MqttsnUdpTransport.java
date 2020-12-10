@@ -107,7 +107,7 @@ public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
             NetworkAddress address = context.getNetworkContext().getNetworkAddress();
             InetAddress inetAddress = InetAddress.getByName(address.getHostAddress());
             DatagramPacket packet = new DatagramPacket(payload, payload.length, inetAddress, address.getPort());
-            logger.log(Level.INFO, String.format("writing [%s] bytes to [%s] port [%s]", payload.length, inetAddress, address.getPort()));
+            logger.log(Level.FINE, String.format("writing [%s] bytes to [%s] port [%s]", payload.length, inetAddress, address.getPort()));
             socket.send(packet);
         } catch(Exception e){
             throw new MqttsnException(e);
@@ -122,7 +122,7 @@ public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
             try (DatagramSocket socket = new DatagramSocket()){
                 socket.setBroadcast(true);
                 for(InetAddress address : broadcastAddresses) {
-                    logger.log(Level.INFO, String.format("broadcasting [%s] message to network interface [%s] -> [%s]",
+                    logger.log(Level.FINE, String.format("broadcasting [%s] message to network interface [%s] -> [%s]",
                             broadcastMessage.getMessageName(), address, options.getMulticastPort()));
                     DatagramPacket packet
                             = new DatagramPacket(arr, arr.length, address, options.getMulticastPort());

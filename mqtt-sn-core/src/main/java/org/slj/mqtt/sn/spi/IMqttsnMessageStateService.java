@@ -69,7 +69,7 @@ public interface IMqttsnMessageStateService<T extends IMqttsnRuntimeRegistry> ex
      */
     Optional<IMqttsnMessage> waitForCompletion(IMqttsnContext context, MqttsnWaitToken token) throws MqttsnExpectationFailedException;
 
-    boolean canReceive(IMqttsnContext context) throws MqttsnException ;
+    boolean canSend(IMqttsnContext context) throws MqttsnException ;
 
     int countInflight(IMqttsnContext context) throws MqttsnException ;
 

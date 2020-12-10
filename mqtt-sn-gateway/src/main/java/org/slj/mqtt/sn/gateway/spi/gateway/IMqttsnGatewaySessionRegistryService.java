@@ -24,7 +24,10 @@
 
 package org.slj.mqtt.sn.gateway.spi.gateway;
 
-import org.slj.mqtt.sn.gateway.spi.*;
+import org.slj.mqtt.sn.gateway.spi.ConnectResult;
+import org.slj.mqtt.sn.gateway.spi.RegisterResult;
+import org.slj.mqtt.sn.gateway.spi.SubscribeResult;
+import org.slj.mqtt.sn.gateway.spi.UnsubscribeResult;
 import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.IMqttsnSessionState;
 import org.slj.mqtt.sn.model.TopicInfo;
@@ -36,8 +39,6 @@ public interface IMqttsnGatewaySessionRegistryService extends IMqttsnRegistry<IM
     IMqttsnSessionState getSessionState(IMqttsnContext context, boolean createIfNotExists) throws MqttsnException;
 
     ConnectResult connect(IMqttsnSessionState state, String clientId, int keepAlive, boolean cleanSession) throws MqttsnException;
-
-    PublishResult publish(IMqttsnSessionState state, TopicInfo info, int QoS, byte[] data) throws MqttsnException;
 
     SubscribeResult subscribe(IMqttsnSessionState state, TopicInfo info, int QoS) throws MqttsnException;
 

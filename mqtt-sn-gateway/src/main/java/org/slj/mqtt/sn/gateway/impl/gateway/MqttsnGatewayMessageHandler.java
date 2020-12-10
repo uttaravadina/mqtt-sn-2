@@ -180,7 +180,11 @@ public class MqttsnGatewayMessageHandler
         TopicInfo info = registry.getTopicRegistry().normalize((byte) subscribe.getTopicType(), subscribe.getTopicData(), true);
         SubscribeResult result = registry.getGatewaySessionService().subscribe(state, info, subscribe.getQoS());
         processSessionResult(result);
-        return registry.getMessageFactory().createSuback(result.getGrantedQoS(), result.getTopicInfo().getTopicId(), result.getReturnCode());
+        if(result.isError()){
+            return registry.getMessageFactory().createSuback(0, 0, result.getReturnCode());
+        } else {
+            return registry.getMessageFactory().createSuback(result.getGrantedQoS(), result.getTopicInfo().getTopicId(), result.getReturnCode());
+        }
     }
 
     @Override
@@ -219,36 +223,11 @@ public class MqttsnGatewayMessageHandler
                 throw e;
         }
 
-        TopicInfo info = registry.getTopicRegistry().normalize((byte) publish.getTopicType(), publish.getTopicData(), false);
-        PublishResult result = registry.getGatewaySessionService().publish(state, info, Math.min(2, Math.max(0, publish.getQoS())), publish.getData());
-        processSessionResult(result);
-
-        IMqttsnMessage response = null;
-        if(result.getStatus() == Result.STATUS.ERROR){
-            //-- if there is an error on publish any message may return a Puback with error
-            response = registry.getMessageFactory().createPuback(publish.readTopicDataAsInteger(),
-                    result.getReturnCode());
-        } else {
-            switch (publish.getQoS()) {
-                case MqttsnConstants.QoS1:
-                    response = registry.getMessageFactory().createPuback(publish.readTopicDataAsInteger(),
-                            result.getReturnCode());
-                    break;
-                case MqttsnConstants.QoS2:
-                    response = registry.getMessageFactory().createPubrec();
-                    break;
-
-                default:
-                case MqttsnConstants.QoSM1:
-                case MqttsnConstants.QoS0:
-                    break;
-            }
-        }
-        return response;
+        return super.handlePublish(context, message);
     }
 
     protected void processSessionResult(Result result){
-        if(result.getStatus() != Result.STATUS.SUCCESS){
+        if(result.getStatus() == Result.STATUS.ERROR){
             logger.log(Level.WARNING, String.format("error detected by session service [%s]", result));
         }
     }

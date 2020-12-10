@@ -38,6 +38,10 @@ public class MqttsnInMemoryMessageStateService <T extends IMqttsnRuntimeRegistry
 
     protected Map<IMqttsnContext, Map<Integer, InflightMessage>> inflightMessages;
 
+    public MqttsnInMemoryMessageStateService(boolean clientMode) {
+        super(clientMode);
+    }
+
     @Override
     public void start(T runtime) throws MqttsnException {
         super.start(runtime);
@@ -107,5 +111,10 @@ public class MqttsnInMemoryMessageStateService <T extends IMqttsnRuntimeRegistry
         }
         logger.log(Level.FINE, String.format("inflight for [%s] is [%s] -> [%s]", context, Objects.toString(map), System.identityHashCode(map)));
         return map;
+    }
+
+    @Override
+    protected boolean inflightExists(IMqttsnContext context, Integer messageId) throws MqttsnException {
+        return getInflightMessages(context).containsKey(messageId);
     }
 }

@@ -74,7 +74,6 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
     @Override
     public void receiveFromTransport(INetworkContext context, ByteBuffer buffer) {
         byte[] data = drain(buffer);
-        logger.log(Level.INFO, "received " + MqttsnWireUtils.toBinary(data));
         IMqttsnMessage message = getRegistry().getCodec().decode(data);
         try {
             if(registry.getOptions().getThreadHandoffFromTransport()){
@@ -104,7 +103,7 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
 
     protected void receiveFromTransport(INetworkContext networkContext, IMqttsnMessage message) {
         try {
-            logger.log(Level.INFO, String.format("[%s] handling receive buffer from transport on thread [%s](%s)", networkContext,
+            logger.log(Level.FINE, String.format("[%s] receive from transport on thread [%s](%s)", networkContext,
                     Thread.currentThread().getName(), Thread.currentThread().getId()));
             if(networkContext.getMqttsnContext() == null || message instanceof MqttsnConnect){
                 IMqttsnContext mqttsnContext = registry.getContextFactory().createInitialContext(networkContext, message);
@@ -136,7 +135,7 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
 
     protected void writeToTransportInternal(IMqttsnContext context, ByteBuffer buffer){
         try {
-            logger.log(Level.INFO, String.format("[%s] writing buffer to transport on thread [%s](%s)", context,
+            logger.log(Level.FINE, String.format("[%s] writing to transport on thread [%s](%s)", context,
                     Thread.currentThread().getName(), Thread.currentThread().getId()));
             writeToTransport(context, buffer);
         } catch(Exception e){

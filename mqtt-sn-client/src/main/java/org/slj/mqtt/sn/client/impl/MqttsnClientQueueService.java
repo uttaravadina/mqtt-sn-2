@@ -47,11 +47,12 @@ public class MqttsnClientQueueService
     protected boolean doWork() {
         try {
             Iterator<IMqttsnContext> itr = getRegistry().getMessageQueue().listContexts();
+            boolean resetBackoff = true;
             while(itr.hasNext()){
                 IMqttsnContext context = itr.next();
-                registry.getQueueProcessor().process(context);
+                resetBackoff &= ! registry.getQueueProcessor().process(context);
             }
-            return true;
+            return resetBackoff;
         } catch(Exception e){
             logger.log(Level.SEVERE, "error in queue processor thread", e);
             return false;

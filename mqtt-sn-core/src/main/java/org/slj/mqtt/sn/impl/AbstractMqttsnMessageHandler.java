@@ -158,10 +158,6 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
         if(registry.getMessageStateService() != null){
             originatingMessage =
                     registry.getMessageStateService().notifyMessageReceived(context, message);
-            if(originatingMessage != null){
-                logger.log(Level.INFO, String.format("mqtt-sn handler [%s] inbound message [%s] confirmed [%s]",
-                        context, message, originatingMessage));
-            }
         }
 
         IMqttsnMessage response = null;

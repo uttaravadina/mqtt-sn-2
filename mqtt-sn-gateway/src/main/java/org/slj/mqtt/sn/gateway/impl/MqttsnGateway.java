@@ -24,10 +24,16 @@
 
 package org.slj.mqtt.sn.gateway.impl;
 
+import org.slj.mqtt.sn.gateway.spi.PublishResult;
 import org.slj.mqtt.sn.gateway.spi.gateway.IMqttsnGatewayRuntimeRegistry;
 import org.slj.mqtt.sn.impl.AbstractMqttsnRuntime;
+import org.slj.mqtt.sn.model.IMqttsnContext;
+import org.slj.mqtt.sn.model.TopicInfo;
+import org.slj.mqtt.sn.spi.IMqttsnPublishReceivedListener;
 import org.slj.mqtt.sn.spi.IMqttsnRuntimeRegistry;
 import org.slj.mqtt.sn.spi.MqttsnException;
+
+import java.util.logging.Level;
 
 public class MqttsnGateway extends AbstractMqttsnRuntime {
 
@@ -54,7 +60,32 @@ public class MqttsnGateway extends AbstractMqttsnRuntime {
         }
 
         callStartup(runtime.getTransport());
+
+        //-- notify the broker of confirmed messahe
+        registerReceivedListener(new IMqttsnPublishReceivedListener() {
+            @Override
+            public void receive(IMqttsnContext context, String topicName, int QoS, byte[] data) {
+                try {
+                    ((IMqttsnGatewayRuntimeRegistry)registry).getBrokerService().publish(context, topicName, QoS, data);
+                } catch(MqttsnException e){
+                    logger.log(Level.SEVERE, "error publishing message to broker");
+                }
+            }
+        });
     }
+
+    /*
+    @Override
+    public PublishResult publish(IMqttsnSessionState state, TopicInfo topicInfo, int QoS, byte[] data) throws MqttsnException {
+        try {
+            IMqttsnContext context = state == null ? null : state.getContext();
+            String topicPath = registry.getTopicRegistry().topicPath(context, topicInfo, context != null);
+            return registry.getBrokerService().publish(context, topicPath, QoS, data);
+        } catch(MqttsnBrokerException e){
+            throw new MqttsnException(e);
+        }
+    }
+     */
 
     public void stopServices(IMqttsnRuntimeRegistry runtime) throws MqttsnException {
 
@@ -80,4 +111,6 @@ public class MqttsnGateway extends AbstractMqttsnRuntime {
         callShutdown(runtime.getQueueProcessor());
         callShutdown(runtime.getMessageStateService());
     }
+
+
 }

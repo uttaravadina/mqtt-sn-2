@@ -138,12 +138,12 @@ public abstract class AbstractMqttsnRuntime {
         System.setProperty("java.util.logging.SimpleFormatter.format", "[%1$tc] %4$s %2$s - %5$s %6$s%n");
     }
 
-    public void messageReceived(IMqttsnContext context, String topicName, int QoS, byte[] payload){
+    protected final void messageReceived(IMqttsnContext context, String topicName, int QoS, byte[] payload){
         logger.log(Level.FINE, String.format("publish received by application [%s]", topicName));
         receivedListeners.stream().forEach(p -> p.receive(context, topicName, QoS, payload));
     }
 
-    public void messageSent(IMqttsnContext context, UUID messageId, String topicName, int QoS, byte[] payload){
+    protected final void messageSent(IMqttsnContext context, UUID messageId, String topicName, int QoS, byte[] payload){
         logger.log(Level.FINE, String.format("sent confirmed by application [%s]", topicName));
         sentListeners.stream().forEach(p -> p.sent(context, messageId, topicName, QoS, payload));
     }

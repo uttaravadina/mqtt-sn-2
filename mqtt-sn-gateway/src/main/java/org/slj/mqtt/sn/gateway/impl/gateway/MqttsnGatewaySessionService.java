@@ -166,7 +166,10 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
                 result.setTopicInfo(info);
                 return result;
             } else {
-                return new SubscribeResult(Result.STATUS.NOOP);
+                SubscribeResult result = new SubscribeResult(Result.STATUS.NOOP);
+                result.setTopicInfo(info);
+                result.setGrantedQoS(QoS);
+                return result;
             }
         }
     }
@@ -217,17 +220,6 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
     @Override
     public void updateLastSeen(IMqttsnSessionState state) {
         state.setLastSeen(new Date());
-    }
-
-    @Override
-    public PublishResult publish(IMqttsnSessionState state, TopicInfo topicInfo, int QoS, byte[] data) throws MqttsnException {
-        try {
-            IMqttsnContext context = state == null ? null : state.getContext();
-            String topicPath = registry.getTopicRegistry().topicPath(context, topicInfo, context != null);
-            return registry.getBrokerService().publish(context, topicPath, QoS, data);
-        } catch(MqttsnBrokerException e){
-            throw new MqttsnException(e);
-        }
     }
 
     public void cleanSession(IMqttsnContext context, boolean deepClean) throws MqttsnException {
