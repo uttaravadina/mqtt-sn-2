@@ -161,6 +161,14 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
                 }
             }
 
+            if(registry.getPermissionService() != null){
+                if(!registry.getPermissionService().allowedToSubscribe(context, topicPath)){
+                    return new SubscribeResult(Result.STATUS.ERROR, MqttsnConstants.RETURN_CODE_REJECTED_CONGESTION,
+                            "permission service denied subscription");
+                }
+                QoS = Math.min(registry.getPermissionService().allowedMaximumQoS(context, topicPath), QoS);
+            }
+
             if(registry.getSubscriptionRegistry().subscribe(state.getContext(), topicPath, QoS)){
                 SubscribeResult result = registry.getBrokerService().subscribe(context, topicPath, QoS);
                 result.setTopicInfo(info);

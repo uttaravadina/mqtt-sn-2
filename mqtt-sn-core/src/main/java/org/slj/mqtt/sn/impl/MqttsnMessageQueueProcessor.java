@@ -49,37 +49,42 @@ public class MqttsnMessageQueueProcessor<T extends IMqttsnRuntimeRegistry>
         if(registry.getMessageStateService().canSend(context)){
             if(registry.getMessageQueue().size(context) > 0){
                 logger.log(Level.INFO, String.format("processing queue on thread [%s] for [%s]", Thread.currentThread().getName(), context));
-                synchronized (context){
-                    QueuedPublishMessage queuedMessage = registry.getMessageQueue().peek(context);
-                    String topicPath = queuedMessage.getTopicPath();
-                    if(queuedMessage != null){
-                        TopicInfo info = registry.getTopicRegistry().lookup(context, topicPath);
-                        if(info == null){
-                            if(registry.getMessageStateService().canSend(context)){
-                                logger.log(Level.INFO, String.format("need to register for delivery to [%s] on topic [%s]", context, topicPath));
-                                if(!clientMode){
-                                    //-- only the server hands out alias's
-                                    info = registry.getTopicRegistry().register(context, topicPath);
-                                }
-                                IMqttsnMessage register = registry.getMessageFactory().createRegister(info != null ? info.getTopicId() : 0, topicPath);
+                QueuedPublishMessage queuedMessage = registry.getMessageQueue().peek(context);
+                String topicPath = queuedMessage.getTopicPath();
+                if(queuedMessage != null){
+                    TopicInfo info = registry.getTopicRegistry().lookup(context, topicPath);
+                    if(info == null){
+                        if(registry.getMessageStateService().canSend(context)){
+                            logger.log(Level.INFO, String.format("need to register for delivery to [%s] on topic [%s]", context, topicPath));
+                            if(!clientMode){
+                                //-- only the server hands out alias's
+                                info = registry.getTopicRegistry().register(context, topicPath);
+                            }
+                            IMqttsnMessage register = registry.getMessageFactory().createRegister(info != null ? info.getTopicId() : 0, topicPath);
+                            try {
                                 MqttsnWaitToken token = registry.getMessageStateService().sendMessage(context, register);
                                 if(clientMode){
                                     registry.getMessageStateService().waitForCompletion(context, token);
                                 }
+                            } catch(MqttsnExpectationFailedException e){
+                                logger.log(Level.WARNING, String.format("unable to send message, try again later"), e);
                             }
-                        } else {
-                            //-- only deque when we have confirmed we can deliver
+                        }
+                    } else {
+                        //-- only deque when we have confirmed we can deliver
+
+                        if(registry.getMessageStateService().canSend(context)) {
                             queuedMessage = registry.getMessageQueue().pop(context);
-                            if(queuedMessage != null && registry.getMessageStateService().canSend(context)){
+                            if (queuedMessage != null) {
                                 queuedMessage.incrementRetry();
                                 //-- let the reaper check on delivery
                                 try {
                                     MqttsnWaitToken token = registry.getMessageStateService().sendMessage(context, info, queuedMessage);
-                                    if(clientMode){
+                                    if (clientMode) {
                                         registry.getMessageStateService().waitForCompletion(context, token);
                                     }
-                                } catch(MqttsnException e){
-                                    logger.log(Level.WARNING, String.format("unable to send message having checked inflight, detected collision, requeue and backoff"), e);
+                                } catch (MqttsnException e) {
+                                    logger.log(Level.WARNING, String.format("unable to send message, requeue and backoff"), e);
                                     registry.getMessageQueue().offer(context, queuedMessage);
                                 }
                             }

@@ -26,6 +26,7 @@ package org.slj.mqtt.sn.gateway.impl;
 
 import org.slj.mqtt.sn.gateway.impl.gateway.MqttsnGatewayAdvertiseService;
 import org.slj.mqtt.sn.gateway.impl.gateway.MqttsnGatewayMessageHandler;
+import org.slj.mqtt.sn.gateway.impl.gateway.MqttsnGatewayPermissionService;
 import org.slj.mqtt.sn.gateway.impl.gateway.MqttsnGatewaySessionService;
 import org.slj.mqtt.sn.gateway.spi.broker.IMqttsnBrokerConnectionFactory;
 import org.slj.mqtt.sn.gateway.spi.broker.IMqttsnBrokerService;
@@ -61,6 +62,7 @@ public class MqttsnGatewayRuntimeRegistry extends AbstractMqttsnRuntimeRegistry 
                 withTopicRegistry(new MqttsnInMemoryTopicRegistry()).
                 withQueueProcessor(new MqttsnMessageQueueProcessor(false)).
                 withSubscriptionRegistry(new MqttsnInMemorySubscriptionRegistry()).
+                withPermissionService(new MqttsnGatewayPermissionService()).
                 withMessageStateService(new MqttsnInMemoryMessageStateService(false));
         return registry;
     }

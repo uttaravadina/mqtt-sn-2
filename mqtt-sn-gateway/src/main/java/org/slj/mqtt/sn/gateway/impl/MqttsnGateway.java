@@ -48,6 +48,7 @@ public class MqttsnGateway extends AbstractMqttsnRuntime {
         callStartup(runtime.getMessageStateService());
         callStartup(runtime.getQueueProcessor());
         callStartup(runtime.getContextFactory());
+        if(runtime.getPermissionService() !=null ) callStartup(runtime.getPermissionService());
 
         //-- start the network last
         callStartup(((IMqttsnGatewayRuntimeRegistry)runtime).getGatewaySessionService());
@@ -74,19 +75,6 @@ public class MqttsnGateway extends AbstractMqttsnRuntime {
         });
     }
 
-    /*
-    @Override
-    public PublishResult publish(IMqttsnSessionState state, TopicInfo topicInfo, int QoS, byte[] data) throws MqttsnException {
-        try {
-            IMqttsnContext context = state == null ? null : state.getContext();
-            String topicPath = registry.getTopicRegistry().topicPath(context, topicInfo, context != null);
-            return registry.getBrokerService().publish(context, topicPath, QoS, data);
-        } catch(MqttsnBrokerException e){
-            throw new MqttsnException(e);
-        }
-    }
-     */
-
     public void stopServices(IMqttsnRuntimeRegistry runtime) throws MqttsnException {
 
         //-- stop the networks first
@@ -100,8 +88,9 @@ public class MqttsnGateway extends AbstractMqttsnRuntime {
         callShutdown(((IMqttsnGatewayRuntimeRegistry)runtime).getBrokerConnectionFactory());
         callShutdown(((IMqttsnGatewayRuntimeRegistry)runtime).getBrokerService());
 
-        //-- ensure we start all the startable services
+        //-- ensure we stop all the startable services
 
+        if(runtime.getPermissionService() !=null ) callShutdown(runtime.getPermissionService());
         callShutdown(runtime.getContextFactory());
         callShutdown(runtime.getMessageHandler());
         callShutdown(runtime.getMessageQueue());

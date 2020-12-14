@@ -53,6 +53,7 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
     protected IMqttsnContextFactory contextFactory;
     protected IMqttsnMessageQueueProcessor queueProcessor;
     protected IMqttsnMessageRegistry messageRegistry;
+    protected IMqttsnPermissionService permissionService;
     protected List<IMqttsnTrafficListener> trafficListeners;
 
     public AbstractMqttsnRuntimeRegistry(MqttsnOptions options){
@@ -107,6 +108,11 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
     @Override
     public AbstractMqttsnRuntime getRuntime() {
         return runtime;
+    }
+
+    @Override
+    public IMqttsnPermissionService getPermissionService() {
+        return permissionService;
     }
 
     @Override
@@ -234,6 +240,11 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
 
     public AbstractMqttsnRuntimeRegistry withNetworkAddressRegistry(INetworkAddressRegistry networkAddressRegistry){
         this.networkAddressRegistry = networkAddressRegistry;
+        return this;
+    }
+
+    public AbstractMqttsnRuntimeRegistry withPermissionService(IMqttsnPermissionService permissionService){
+        this.permissionService = permissionService;
         return this;
     }
 

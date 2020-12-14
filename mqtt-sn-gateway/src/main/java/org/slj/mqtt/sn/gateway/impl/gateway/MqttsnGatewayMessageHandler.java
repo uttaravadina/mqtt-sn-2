@@ -123,36 +123,28 @@ public class MqttsnGatewayMessageHandler
     protected IMqttsnMessage handleConnect(IMqttsnContext context, IMqttsnMessage connect) throws MqttsnException, MqttsnCodecException {
 
         MqttsnConnect connectMessage = (MqttsnConnect) connect ;
-        if(!validateClientId(context, connectMessage.getClientId())){
+        if(registry.getPermissionService() != null){
+            if(!registry.getPermissionService().allowConnect(context, connectMessage.getClientId())){
+                logger.log(Level.WARNING, String.format("permission service rejected client [%s]", connectMessage.getClientId()));
+                return registry.getMessageFactory().createConnack(MqttsnConstants.RETURN_CODE_SERVER_UNAVAILABLE);
+            }
+        }
 
-            logger.log(Level.WARNING, String.format("rejected client based on non-listed clientId [%s]", connectMessage.getClientId()));
-            return registry.getMessageFactory().createConnack(MqttsnConstants.RETURN_CODE_SERVER_UNAVAILABLE);
+        IMqttsnSessionState state = getSessionState(context, true);
+        ConnectResult result = registry.getGatewaySessionService().connect(state, connectMessage.getClientId(),
+                connectMessage.getDuration(), connectMessage.isCleanSession());
 
-        } else {
-            IMqttsnSessionState state = getSessionState(context, true);
-            ConnectResult result = registry.getGatewaySessionService().connect(state, connectMessage.getClientId(),
-                    connectMessage.getDuration(), connectMessage.isCleanSession());
-
-            processSessionResult(result);
-            if(result.isError()){
+        processSessionResult(result);
+        if(result.isError()){
+            return registry.getMessageFactory().createConnack(result.getReturnCode());
+        }
+        else {
+            if(connectMessage.isWill()){
+                return registry.getMessageFactory().createWillTopicReq();
+            } else {
                 return registry.getMessageFactory().createConnack(result.getReturnCode());
             }
-            else {
-                if(connectMessage.isWill()){
-                    return registry.getMessageFactory().createWillTopicReq();
-                } else {
-                    return registry.getMessageFactory().createConnack(result.getReturnCode());
-                }
-            }
         }
-    }
-
-    protected boolean validateClientId(IMqttsnContext context, String clientId){
-        Set<String> allowedClientId = ((MqttsnGatewayOptions)registry.getOptions()).getAllowedClientIds();
-        if(allowedClientId != null && !allowedClientId.isEmpty()){
-            return allowedClientId.contains(clientId);
-        }
-        return true;
     }
 
     @Override

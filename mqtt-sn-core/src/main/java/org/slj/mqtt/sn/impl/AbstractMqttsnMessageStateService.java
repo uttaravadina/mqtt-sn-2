@@ -69,12 +69,16 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                             flushItr.remove();
                         }
                     } catch(Exception e){
-                        logger.log(Level.SEVERE, "error flushing context on state thread", e);
+                        logger.log(Level.SEVERE, "error flushing context on state thread;", e);
                     }
                 }
             }
         }
 
+        return true;
+    }
+
+    protected boolean allowedToSend(IMqttsnContext context, IMqttsnMessage message) throws MqttsnException {
         return true;
     }
 
@@ -100,6 +104,13 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                     String.format("unable to send [%s],[%s] to [%s], max inflight reached [%s]",
                             message, queuedPublishMessage, context, count));
             throw new MqttsnExpectationFailedException("fail-fast mode on max inflight max - cap hit");
+        }
+
+        if(!allowedToSend(context, message)){
+            logger.log(Level.WARNING,
+                    String.format("allowed to send [%s] check failed [%s]",
+                            message, context));
+            throw new MqttsnExpectationFailedException("allowed to send check failed");
         }
 
         try {
