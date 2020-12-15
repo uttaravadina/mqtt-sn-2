@@ -67,7 +67,9 @@ public class MqttsnMessageQueueProcessor<T extends IMqttsnRuntimeRegistry>
                                 try {
                                     MqttsnWaitToken token = registry.getMessageStateService().sendMessage(context, register);
                                     if(clientMode){
-                                        registry.getMessageStateService().waitForCompletion(context, token);
+                                        if(token != null){
+                                            registry.getMessageStateService().waitForCompletion(context, token);
+                                        }
                                     }
                                 } catch(MqttsnExpectationFailedException e){
                                     logger.log(Level.WARNING, String.format("unable to send message, try again later"), e);
@@ -85,7 +87,9 @@ public class MqttsnMessageQueueProcessor<T extends IMqttsnRuntimeRegistry>
                                     try {
                                         MqttsnWaitToken token = registry.getMessageStateService().sendMessage(context, info, queuedMessage);
                                         if (clientMode) {
-                                            registry.getMessageStateService().waitForCompletion(context, token);
+                                            if(token != null){
+                                                registry.getMessageStateService().waitForCompletion(context, token);
+                                            }
                                         }
                                     } catch (MqttsnException e) {
                                         logger.log(Level.WARNING, String.format("unable to send message, requeue and backoff"), e);

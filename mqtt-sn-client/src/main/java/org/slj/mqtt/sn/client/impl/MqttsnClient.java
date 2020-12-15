@@ -107,9 +107,11 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     public void publish(String topicName, int QoS, byte[] data) throws MqttsnException{
         MqttsnUtils.validateQos(QoS);
         IMqttsnSessionState state = checkSession(QoS >= 0);
-        registry.getMessageQueue().offer(state.getContext(),
+        if(!registry.getMessageQueue().offer(state.getContext(),
                 new QueuedPublishMessage(
-                        registry.getMessageRegistry().add(data, true), topicName, QoS));
+                        registry.getMessageRegistry().add(data, true), topicName, QoS))){
+            throw new MqttsnExpectationFailedException("publish queue was full, publish operation not added");
+        }
     }
 
     @Override

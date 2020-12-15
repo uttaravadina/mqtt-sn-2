@@ -57,7 +57,8 @@ public class MqttsnInMemoryMessageQueue<T extends IMqttsnRuntimeRegistry>
         Queue<QueuedPublishMessage> queue = getQueue(context);
         if(size(context) >= getMaxQueueSize()){
             logger.log(Level.WARNING, String.format("max queue size reached for client [%s] >= [%s]", context, queue.size()));
-            throw new MqttsnExpectationFailedException("max queue size reached for client, cannot queue");
+//            throw new MqttsnExpectationFailedException("max queue size reached for client, cannot queue");
+            return false;
         }
         boolean b;
         synchronized (queue){
