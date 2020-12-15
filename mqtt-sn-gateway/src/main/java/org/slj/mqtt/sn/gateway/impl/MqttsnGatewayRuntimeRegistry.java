@@ -24,10 +24,7 @@
 
 package org.slj.mqtt.sn.gateway.impl;
 
-import org.slj.mqtt.sn.gateway.impl.gateway.MqttsnGatewayAdvertiseService;
-import org.slj.mqtt.sn.gateway.impl.gateway.MqttsnGatewayMessageHandler;
-import org.slj.mqtt.sn.gateway.impl.gateway.MqttsnGatewayPermissionService;
-import org.slj.mqtt.sn.gateway.impl.gateway.MqttsnGatewaySessionService;
+import org.slj.mqtt.sn.gateway.impl.gateway.*;
 import org.slj.mqtt.sn.gateway.spi.broker.IMqttsnBrokerConnectionFactory;
 import org.slj.mqtt.sn.gateway.spi.broker.IMqttsnBrokerService;
 import org.slj.mqtt.sn.gateway.spi.gateway.IMqttsnGatewayAdvertiseService;
@@ -51,7 +48,8 @@ public class MqttsnGatewayRuntimeRegistry extends AbstractMqttsnRuntimeRegistry 
     }
 
     public static MqttsnGatewayRuntimeRegistry defaultConfiguration(MqttsnOptions options){
-        MqttsnGatewayRuntimeRegistry registry = (MqttsnGatewayRuntimeRegistry) new MqttsnGatewayRuntimeRegistry(options).
+        MqttsnGatewaySessionService sessionService = new MqttsnGatewaySessionService();
+        final MqttsnGatewayRuntimeRegistry registry = (MqttsnGatewayRuntimeRegistry) new MqttsnGatewayRuntimeRegistry(options).
                 withGatewaySessionService(new MqttsnGatewaySessionService()).
                 withGatewayAdvertiseService(new MqttsnGatewayAdvertiseService()).
                 withMessageHandler(new MqttsnGatewayMessageHandler()).
@@ -61,6 +59,7 @@ public class MqttsnGatewayRuntimeRegistry extends AbstractMqttsnRuntimeRegistry 
                 withContextFactory(new MqttsnContextFactory()).
                 withTopicRegistry(new MqttsnInMemoryTopicRegistry()).
                 withQueueProcessor(new MqttsnMessageQueueProcessor(false)).
+                withQueueProcessorStateCheck(new MqttsnGatewayQueueProcessorStateService()).
                 withSubscriptionRegistry(new MqttsnInMemorySubscriptionRegistry()).
                 withPermissionService(new MqttsnGatewayPermissionService()).
                 withMessageStateService(new MqttsnInMemoryMessageStateService(false));

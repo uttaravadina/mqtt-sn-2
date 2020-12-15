@@ -33,7 +33,9 @@ import org.slj.mqtt.sn.gateway.spi.gateway.MqttsnGatewayOptions;
 import org.slj.mqtt.sn.impl.AbstractMqttsnBackoffThreadService;
 import org.slj.mqtt.sn.impl.MqttsnMessageQueueProcessor;
 import org.slj.mqtt.sn.model.*;
+import org.slj.mqtt.sn.spi.IMqttsnMessageQueueProcessor;
 import org.slj.mqtt.sn.spi.MqttsnException;
+import org.slj.mqtt.sn.utils.MqttsnUtils;
 import org.slj.mqtt.sn.utils.TopicPath;
 
 import java.util.*;
@@ -222,7 +224,11 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
 
     @Override
     public void ping(IMqttsnSessionState state) {
-        updateLastSeen(state);
+    }
+
+    @Override
+    public void wake(IMqttsnSessionState state) {
+        state.setClientState(MqttsnClientState.AWAKE);
     }
 
     @Override

@@ -40,6 +40,8 @@ public interface IMqttsnClient extends Closeable {
 
     void unsubscribe(String topicName) throws MqttsnException;
 
+    void supervisedSleepWithWake(int duration, int wakeAfterInterval, boolean connectOnFinish)  throws MqttsnException;
+
     void sleep(int keepAlive) throws MqttsnException;
 
     void wake() throws MqttsnException;

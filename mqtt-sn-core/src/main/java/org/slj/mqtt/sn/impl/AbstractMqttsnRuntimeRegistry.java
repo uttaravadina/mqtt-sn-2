@@ -52,6 +52,7 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
     protected IMqttsnMessageStateService messageStateService;
     protected IMqttsnContextFactory contextFactory;
     protected IMqttsnMessageQueueProcessor queueProcessor;
+    protected IMqttsnQueueProcessorStateService queueProcessorStateCheckService;
     protected IMqttsnMessageRegistry messageRegistry;
     protected IMqttsnPermissionService permissionService;
     protected List<IMqttsnTrafficListener> trafficListeners;
@@ -113,6 +114,10 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
     @Override
     public IMqttsnPermissionService getPermissionService() {
         return permissionService;
+    }
+
+    public IMqttsnQueueProcessorStateService getQueueProcessorStateCheckService() {
+        return queueProcessorStateCheckService;
     }
 
     @Override
@@ -185,6 +190,11 @@ public abstract class AbstractMqttsnRuntimeRegistry implements IMqttsnRuntimeReg
             }
         }
         trafficListeners.add(trafficListener);
+        return this;
+    }
+
+    public AbstractMqttsnRuntimeRegistry withQueueProcessorStateCheck(IMqttsnQueueProcessorStateService queueProcessorStateCheckService){
+        this.queueProcessorStateCheckService = queueProcessorStateCheckService;
         return this;
     }
 

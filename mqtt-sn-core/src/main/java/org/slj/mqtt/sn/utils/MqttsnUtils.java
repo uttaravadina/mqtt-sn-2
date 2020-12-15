@@ -24,6 +24,7 @@
 
 package org.slj.mqtt.sn.utils;
 
+import org.slj.mqtt.sn.MqttsnConstants;
 import org.slj.mqtt.sn.model.MqttsnClientState;
 import org.slj.mqtt.sn.model.MqttsnWaitToken;
 import org.slj.mqtt.sn.spi.IMqttsnMessage;
@@ -125,5 +126,20 @@ public class MqttsnUtils {
             }
         }
         return false;
+    }
+
+    public static void validateQos(int value) throws MqttsnExpectationFailedException{
+        if(value < -1 || value > 2)
+            throw new MqttsnExpectationFailedException("value was outside allowed QoS range -1 - 2");
+    }
+
+    public static void validateUInt16(int value) throws MqttsnExpectationFailedException{
+        if(value < 0 || value > MqttsnConstants.USIGNED_MAX_16)
+            throw new MqttsnExpectationFailedException("value was outside allowed range 0-" + MqttsnConstants.USIGNED_MAX_16);
+    }
+
+    public static void validateUInt8(int value) throws MqttsnExpectationFailedException{
+        if(value < 0 || value > MqttsnConstants.USIGNED_MAX_8)
+            throw new MqttsnExpectationFailedException("value was outside allowed range 0-" + MqttsnConstants.USIGNED_MAX_8);
     }
 }

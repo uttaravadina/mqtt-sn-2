@@ -276,7 +276,7 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
         } catch(MqttsnException e){
             logger.log(Level.SEVERE, "error encountered during receive, disconnect device", e);
             handleResponse(context,
-                    registry.getMessageFactory().createDisconnect(MqttsnConstants.RETURN_CODE_SERVER_UNAVAILABLE));
+                    registry.getMessageFactory().createDisconnect());
             throw e;
         }
     }

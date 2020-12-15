@@ -26,7 +26,6 @@ package org.slj.mqtt.sn.spi;
 
 import org.slj.mqtt.sn.impl.AbstractMqttsnRuntime;
 import org.slj.mqtt.sn.model.MqttsnOptions;
-import org.slj.mqtt.sn.net.NetworkAddressRegistry;
 
 import java.util.List;
 
@@ -63,6 +62,8 @@ public interface IMqttsnRuntimeRegistry {
     IMqttsnContextFactory getContextFactory();
 
     IMqttsnMessageQueueProcessor getQueueProcessor();
+
+    IMqttsnQueueProcessorStateService getQueueProcessorStateCheckService();
 
     IMqttsnMessageRegistry getMessageRegistry();
 

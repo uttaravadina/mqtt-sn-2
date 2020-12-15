@@ -46,6 +46,8 @@ public interface IMqttsnGatewaySessionRegistryService extends IMqttsnRegistry<IM
 
     RegisterResult register(IMqttsnSessionState state, String topicPath) throws MqttsnException;
 
+    void wake(IMqttsnSessionState state) throws MqttsnException;
+
     void ping(IMqttsnSessionState state) throws MqttsnException;
 
     void updateLastSeen(IMqttsnSessionState state);

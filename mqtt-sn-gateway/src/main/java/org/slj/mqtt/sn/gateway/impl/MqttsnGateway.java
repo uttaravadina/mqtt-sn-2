@@ -24,11 +24,9 @@
 
 package org.slj.mqtt.sn.gateway.impl;
 
-import org.slj.mqtt.sn.gateway.spi.PublishResult;
 import org.slj.mqtt.sn.gateway.spi.gateway.IMqttsnGatewayRuntimeRegistry;
 import org.slj.mqtt.sn.impl.AbstractMqttsnRuntime;
 import org.slj.mqtt.sn.model.IMqttsnContext;
-import org.slj.mqtt.sn.model.TopicInfo;
 import org.slj.mqtt.sn.spi.IMqttsnPublishReceivedListener;
 import org.slj.mqtt.sn.spi.IMqttsnRuntimeRegistry;
 import org.slj.mqtt.sn.spi.MqttsnException;
@@ -46,6 +44,7 @@ public class MqttsnGateway extends AbstractMqttsnRuntime {
         callStartup(runtime.getTopicRegistry());
         callStartup(runtime.getSubscriptionRegistry());
         callStartup(runtime.getMessageStateService());
+        callStartup(runtime.getQueueProcessorStateCheckService());
         callStartup(runtime.getQueueProcessor());
         callStartup(runtime.getContextFactory());
         if(runtime.getPermissionService() !=null ) callStartup(runtime.getPermissionService());
@@ -97,6 +96,7 @@ public class MqttsnGateway extends AbstractMqttsnRuntime {
         callShutdown(runtime.getMessageRegistry());
         callShutdown(runtime.getTopicRegistry());
         callShutdown(runtime.getSubscriptionRegistry());
+        callShutdown(runtime.getQueueProcessorStateCheckService());
         callShutdown(runtime.getQueueProcessor());
         callShutdown(runtime.getMessageStateService());
     }

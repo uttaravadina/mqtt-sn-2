@@ -24,6 +24,7 @@
 
 package org.slj.mqtt.sn.client.impl;
 
+import org.slj.mqtt.sn.MqttsnConstants;
 import org.slj.mqtt.sn.client.spi.IMqttsnClient;
 import org.slj.mqtt.sn.client.spi.IMqttsnClientRuntimeRegistry;
 import org.slj.mqtt.sn.impl.AbstractMqttsnRuntime;
@@ -86,6 +87,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
 
     @Override
     public void connect(int keepAlive, boolean cleanSession) throws MqttsnException{
+        MqttsnUtils.validateUInt16(keepAlive);
         IMqttsnSessionState state = checkSession(false);
         synchronized (this) {
             if (state.getClientState() != MqttsnClientState.CONNECTED) {
@@ -103,6 +105,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
 
     @Override
     public void publish(String topicName, int QoS, byte[] data) throws MqttsnException{
+        MqttsnUtils.validateQos(QoS);
         IMqttsnSessionState state = checkSession(QoS >= 0);
         registry.getMessageQueue().offer(state.getContext(),
                 new QueuedPublishMessage(
@@ -111,6 +114,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
 
     @Override
     public void subscribe(String topicName, int QoS) throws MqttsnException{
+        MqttsnUtils.validateQos(QoS);
         IMqttsnSessionState state = checkSession(true);
         IMqttsnMessage message = registry.getMessageFactory().createSubscribe(QoS, topicName);
         synchronized (this){
@@ -132,9 +136,48 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     }
 
     @Override
-    public void sleep(int keepAlive)  throws MqttsnException{
+    public void supervisedSleepWithWake(int duration, int wakeAfterInterval, boolean connectOnFinish)  throws MqttsnException {
+
+        MqttsnUtils.validateUInt16(duration);
+        MqttsnUtils.validateUInt16(wakeAfterInterval);
+
+        if(wakeAfterInterval > duration)
+           throw new MqttsnExpectationFailedException("sleep duration must be greater than the wake after period");
+
+        long now = System.currentTimeMillis();
+        long sleepUntil = now + (duration * 1000);
+        sleep(duration);
+        while(sleepUntil > (now = System.currentTimeMillis())){
+            long timeLeft = sleepUntil - now;
+            int period = (int) Math.min(duration, timeLeft / 1000);
+//            sleep(period);
+
+            //-- sleep for the wake after period
+            try {
+                long wake = Math.min(wakeAfterInterval, period);
+                logger.log(Level.INFO, String.format("waking after [%s] seconds", wake));
+                Thread.sleep(wake * 1000);
+                wake();
+            } catch(InterruptedException e){
+                Thread.currentThread().interrupt();
+                throw new MqttsnException(e);
+            }
+        }
+
+        if(connectOnFinish){
+            IMqttsnSessionState state = checkSession(false);
+            connect(state.getKeepAlive(), false);
+        } else {
+            disconnect();
+        }
+    }
+
+    @Override
+    public void sleep(int duration)  throws MqttsnException{
+        MqttsnUtils.validateUInt16(duration);
+        logger.log(Level.INFO, String.format("sleeping for [%s] seconds", duration));
         IMqttsnSessionState state = checkSession(true);
-        IMqttsnMessage message = registry.getMessageFactory().createDisconnect(keepAlive);
+        IMqttsnMessage message = registry.getMessageFactory().createDisconnect(duration);
         synchronized (this){
             MqttsnWaitToken token = registry.getMessageStateService().sendMessage(state.getContext(), message);
             Optional<IMqttsnMessage> response = registry.getMessageStateService().waitForCompletion(state.getContext(), token);
@@ -146,7 +189,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     @Override
     public void wake()  throws MqttsnException{
         IMqttsnSessionState state = checkSession(false);
-        IMqttsnMessage message = registry.getMessageFactory().createPingreq(null);
+        IMqttsnMessage message = registry.getMessageFactory().createPingreq(registry.getOptions().getContextId());
         synchronized (this){
             if(MqttsnUtils.in(state.getClientState(),
                     MqttsnClientState.ASLEEP)){
@@ -251,31 +294,35 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         }
     }
 
-    protected MqttsnSessionState checkSession(boolean validate) throws MqttsnException {
+    protected MqttsnSessionState checkSession(boolean validateConnected) throws MqttsnException {
         MqttsnSessionState state = getOrDiscoverGatewaySession();
-        if(validate && state.getClientState() != MqttsnClientState.CONNECTED)
+        if(validateConnected && state.getClientState() != MqttsnClientState.CONNECTED)
             throw new MqttsnRuntimeException("client not connected");
         return state;
     }
 
     protected MqttsnSessionState getOrDiscoverGatewaySession() throws MqttsnException {
         if(state == null){
-            try {
-                logger.log(Level.INFO, "discover gateway...");
-                Optional<INetworkContext> optionalMqttsnContext =
-                        registry.getNetworkRegistry().waitForContext(60, TimeUnit.MINUTES);
-                if(optionalMqttsnContext.isPresent()){
-                    INetworkContext gatewayContext = optionalMqttsnContext.get();
-                    state = new MqttsnSessionState(gatewayContext.getMqttsnContext(), MqttsnClientState.PENDING);
-                    logger.log(Level.INFO, String.format("discovery located a gateway for use [%s]", gatewayContext));
-                } else {
-                    throw new MqttsnException("unable to discovery gateway within specified timeout");
+            synchronized (this){
+                if(state == null){
+                    try {
+                        logger.log(Level.INFO, "discover gateway...");
+                        Optional<INetworkContext> optionalMqttsnContext =
+                                registry.getNetworkRegistry().waitForContext(60, TimeUnit.MINUTES);
+                        if(optionalMqttsnContext.isPresent()){
+                            INetworkContext gatewayContext = optionalMqttsnContext.get();
+                            state = new MqttsnSessionState(gatewayContext.getMqttsnContext(), MqttsnClientState.PENDING);
+                            logger.log(Level.INFO, String.format("discovery located a gateway for use [%s]", gatewayContext));
+                        } else {
+                            throw new MqttsnException("unable to discovery gateway within specified timeout");
+                        }
+                    } catch(NetworkRegistryException | InterruptedException e){
+                        throw new MqttsnException("discovery was interrupted and no gateway was found", e);
+                    }
                 }
-            } catch(NetworkRegistryException | InterruptedException e){
-                throw new MqttsnException("discovery was interrupted and no gateway was found", e);
             }
         }
+
         return state;
     }
 }
-

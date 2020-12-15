@@ -40,7 +40,7 @@ public class MqttsnOptions {
     public static final int DEFAULT_MAX_TOPICS_IN_REGISTRY = 128;
     public static final int DEFAULT_MSG_ID_STARTS_AT = 1;
     public static final int DEFAULT_ALIAS_STARTS_AT = 1;
-    public static final int DEFAULT_MAX_MESSAGES_IN_FLIGHT = 1;
+    public static final int DEFAULT_MAX_MESSAGES_IN_FLIGHT = 2;
     public static final int DEFAULT_MAX_MESSAGE_IN_QUEUE = 100;
     public static final boolean DEFAULT_REQUEUE_ON_INFLIGHT_TIMEOUT = true;
     public static final int DEFAULT_MAX_TOPIC_LENGTH = 1024;

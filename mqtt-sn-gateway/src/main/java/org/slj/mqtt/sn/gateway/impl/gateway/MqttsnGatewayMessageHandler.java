@@ -77,6 +77,8 @@ public class MqttsnGatewayMessageHandler
                     //this is ok
                     shouldContinue = true;
                 }
+            } else if(message instanceof MqttsnDisconnect){
+                shouldContinue = true;
             }
             if(!shouldContinue){
                 logger.log(Level.WARNING, String.format("detected invalid client session state for [%s] and inbound message [%s]", context, message));
@@ -92,7 +94,6 @@ public class MqttsnGatewayMessageHandler
             IMqttsnSessionState sessionState = getSessionState(context);
             if(sessionState != null){
                 registry.getGatewaySessionService().updateLastSeen(sessionState);
-
             }
         } catch(MqttsnInvalidSessionStateException e){
             //-- a disconnect will mean theres no session to update
@@ -150,7 +151,7 @@ public class MqttsnGatewayMessageHandler
     @Override
     protected IMqttsnMessage handleDisconnect(IMqttsnContext context, IMqttsnMessage initialDisconnect, IMqttsnMessage receivedDisconnect) throws MqttsnException, MqttsnCodecException, MqttsnInvalidSessionStateException {
 
-        IMqttsnSessionState state = getSessionState(context);
+        IMqttsnSessionState state = getSessionState(context, false);
         MqttsnDisconnect d = (MqttsnDisconnect) receivedDisconnect;
         registry.getGatewaySessionService().disconnect(state, d.getDuration());
         return super.handleDisconnect(context, initialDisconnect, receivedDisconnect);
@@ -160,8 +161,19 @@ public class MqttsnGatewayMessageHandler
     protected IMqttsnMessage handlePingreq(IMqttsnContext context, IMqttsnMessage message) throws MqttsnException, MqttsnCodecException, MqttsnInvalidSessionStateException {
 
         IMqttsnSessionState state = getSessionState(context);
-        registry.getGatewaySessionService().ping(state);
-        return super.handlePingreq(context, message);
+        if(MqttsnUtils.in(state.getClientState(), MqttsnClientState.ASLEEP, MqttsnClientState.AWAKE)){
+            //-- only wake the client if there is messages outstanding
+            if(registry.getMessageQueue().size(context) > 0){
+                registry.getGatewaySessionService().wake(state);
+                registry.getMessageStateService().scheduleFlush(context);
+                return null;
+            } else {
+                return super.handlePingreq(context, message);
+            }
+        } else {
+            registry.getGatewaySessionService().ping(state);
+            return super.handlePingreq(context, message);
+        }
     }
 
     @Override

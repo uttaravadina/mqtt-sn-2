@@ -16,6 +16,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
     protected static final Integer WEAK_ATTACH_ID = new Integer(MqttsnConstants.USIGNED_MAX_16 + 1);
     protected boolean clientMode;
 
+    protected Map<IMqttsnContext, Integer> lastUsedMsgIds;
     protected Map<IMqttsnContext, List<CommitOperation>> uncommittedMessages;
     protected Set<FlushQueueOperation> flushOperations;
 
@@ -28,6 +29,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         super.start(runtime);
         uncommittedMessages = Collections.synchronizedMap(new HashMap());
         flushOperations = Collections.synchronizedSet(new HashSet());
+        lastUsedMsgIds = Collections.synchronizedMap(new HashMap());
     }
 
     @Override
@@ -66,7 +68,11 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                     if(!process) continue;
                     try {
                         if(registry.getQueueProcessor().process(operation.context)){
+                            logger.log(Level.INFO, String.format("determined [%s] queue is empty, removing context from flush", operation.context));
                             flushItr.remove();
+                        } else {
+                            //knock the time on for another attempt
+                            operation.timestamp = System.currentTimeMillis();
                         }
                     } catch(Exception e){
                         logger.log(Level.SEVERE, "error flushing context on state thread;", e);
@@ -129,8 +135,10 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
 
             //-- the only publish that does not require an ack is QoS so send to app as delivered
             if(!requiresResponse && message instanceof MqttsnPublish){
-                getUncommittedMessages(context).add(
-                        CommitOperation.outbound(context, message, queuedPublishMessage.getMessageId()));
+                CommitOperation op = CommitOperation.outbound(context, queuedPublishMessage.getMessageId(),
+                        queuedPublishMessage.getTopicPath(), queuedPublishMessage.getGrantedQoS(),
+                        ((MqttsnPublish) message).getData());
+                getUncommittedMessages(context).add(op);
             }
 
             return token;
@@ -215,14 +223,20 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
 
                     //inbound qos 2 commit
                     if (message instanceof MqttsnPubrel){
-                        getUncommittedMessages(context).add(CommitOperation.inbound(context, confirmedMessage));
+                        CommitOperation op = CommitOperation.inbound(context,
+                                getTopicPathFromPublish(context, (MqttsnPublish) confirmedMessage),
+                                ((MqttsnPublish) confirmedMessage).getQoS(),
+                                ((MqttsnPublish) confirmedMessage).getData());
+                        getUncommittedMessages(context).add(op);
                     }
 
                     //outbound qos 1
                     if(message instanceof MqttsnPuback){
                         RequeueableInflightMessage rim = (RequeueableInflightMessage) inflight;
-                        getUncommittedMessages(context).add(CommitOperation.outbound(context, confirmedMessage,
-                                rim.getQueuedPublishMessage().getMessageId()));
+                        CommitOperation op = CommitOperation.outbound(context, rim.getQueuedPublishMessage().getMessageId(),
+                                rim.getQueuedPublishMessage().getTopicPath(), rim.getQueuedPublishMessage().getGrantedQoS(),
+                                ((MqttsnPublish) confirmedMessage).getData());
+                        getUncommittedMessages(context).add(op);
                     }
 
                     return confirmedMessage;
@@ -234,8 +248,10 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                     if(message instanceof MqttsnPubrec){
                         InflightMessage inflight = getInflightMessage(context, msgId);
                         RequeueableInflightMessage rim = (RequeueableInflightMessage) inflight;
-                        getUncommittedMessages(context).add(CommitOperation.outbound(context, rim.getMessage(),
-                                rim.getQueuedPublishMessage().getMessageId()));
+                        CommitOperation op = CommitOperation.outbound(context, rim.getQueuedPublishMessage().getMessageId(),
+                                rim.getQueuedPublishMessage().getTopicPath(), rim.getQueuedPublishMessage().getGrantedQoS(),
+                                ((MqttsnPublish) inflight.getMessage()).getData());
+                        getUncommittedMessages(context).add(op);
                     }
                 }
 
@@ -246,15 +262,25 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
             //-- received NEW message that was not associated with an inflight message
             //-- so we need to pin it into the inflight system (if it needs confirming).
             if (message instanceof MqttsnPublish) {
+                MqttsnPublish pub = (MqttsnPublish) message;
                 if (((MqttsnPublish) message).getQoS() == 2) {
                     if(countInflight(context) > 0){
-                        logger.log(Level.WARNING, String.format("message inflight & received a publish QoS2 that needs to go there too!", message));
+                        Map<Integer, InflightMessage> inflights = getInflightMessages(context);
+                        logger.log(Level.INFO, String.format("have message inflight [%s] & received a publish QoS2 that needs to go there too!",
+                                Objects.toString(inflights)));
+                        if(!inflights.containsKey(WEAK_ATTACH_ID)){
+                            throw new MqttsnExpectationFailedException("can only have 1 publish message inflight at a time");
+                        }
                     }
                     //-- Qos 2 needs further confirmation before being sent to application
                     markInflight(context, message, null);
                 } else {
                     //-- Qos 0 & 1 are inbound are confirmed on receipt of message
-                    getUncommittedMessages(context).add(CommitOperation.inbound(context, message));
+                    CommitOperation op = CommitOperation.inbound(context,
+                            getTopicPathFromPublish(context, pub),
+                            ((MqttsnPublish) message).getQoS(),
+                            ((MqttsnPublish) message).getData());
+                    getUncommittedMessages(context).add(op);
                 }
             }
 
@@ -267,18 +293,10 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         try {
             //commit messages to runtime if its a publish
             IMqttsnContext context = operation.context;
-            MqttsnPublish publish = (MqttsnPublish) operation.publish;
-            TopicInfo info =
-                    registry.getTopicRegistry().normalize((byte) publish.getTopicType(), publish.getTopicData(), false);
-            if(info != null){
-                String topicPath = registry.getTopicRegistry().topicPath(context, info, true);
-                if(operation.inbound){
-                    registry.getRuntime().messageReceived(context, topicPath, publish.getQoS(), publish.getData());
-                } else {
-                    registry.getRuntime().messageSent(context, operation.messageId, topicPath, publish.getQoS(), publish.getData());
-                }
+            if(operation.inbound){
+                registry.getRuntime().messageReceived(context, operation.topicPath, operation.QoS, operation.payload);
             } else {
-                logger.log(Level.WARNING, String.format("unable to deliver message to application no topic info!"));
+                registry.getRuntime().messageSent(context, operation.messageId, operation.topicPath, operation.QoS, operation.payload);
             }
         } catch(Exception e){
             logger.log(Level.SEVERE, String.format("error committing message to application;"), e);
@@ -310,21 +328,24 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         }
 
         addInflightMessage(context, msgId, inflight);
+        if(msgId != WEAK_ATTACH_ID) lastUsedMsgIds.put(context, msgId);
         return inflight.getToken();
     }
 
     protected Integer getNextMsgId(IMqttsnContext context) throws MqttsnException {
 
         Map<Integer, InflightMessage> map = getInflightMessages(context);
-        int startAt = Math.max(1, registry.getOptions().getMsgIdStartAt());
+        int startAt = Math.max(lastUsedMsgIds.get(context) == null ? 1 : lastUsedMsgIds.get(context) + 1,
+                registry.getOptions().getMsgIdStartAt());
+
         Set<Integer> set = map.keySet();
-        for (int i = startAt;
-             i < MqttsnConstants.USIGNED_MAX_16; i++){
-            if(! set.contains(new Integer(i))){
-                return i;
-            }
+        while(set.contains(new Integer(startAt))){
+            startAt = ++startAt % MqttsnConstants.USIGNED_MAX_16;
         }
-        throw new MqttsnRuntimeException("cannot assign msg id " + startAt);
+
+        if(set.contains(new Integer(startAt)))
+            throw new MqttsnRuntimeException("cannot assign msg id " + startAt);
+        return startAt;
     }
 
     protected void clearInflight(IMqttsnContext context, long evictionTime) throws MqttsnException {
@@ -401,6 +422,12 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         }
     }
 
+    protected String getTopicPathFromPublish(IMqttsnContext context, MqttsnPublish publish) throws MqttsnException {
+        TopicInfo info = registry.getTopicRegistry().normalize((byte) publish.getTopicType(), publish.getTopicData(), false);
+        String topicPath = registry.getTopicRegistry().topicPath(context, info, true);
+        return topicPath;
+    }
+
     protected abstract InflightMessage removeInflightMessage(IMqttsnContext context, Integer messageId) throws MqttsnException ;
 
     protected abstract void addInflightMessage(IMqttsnContext context, Integer messageId, InflightMessage message) throws MqttsnException ;
@@ -413,25 +440,29 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
 
     static class CommitOperation {
 
-        protected IMqttsnMessage publish;
+        protected int QoS;
+        protected String topicPath;
+        protected byte[] payload;
         protected IMqttsnContext context;
         protected long timestamp;
         protected UUID messageId;
         protected boolean inbound = true;
 
-        public CommitOperation(IMqttsnMessage publish, IMqttsnContext context, long timestamp, boolean inbound) {
-            this.publish = publish;
+        public CommitOperation(IMqttsnContext context, long timestamp, String topicPath, int QoS, byte[] payload, boolean inbound) {
             this.context = context;
             this.timestamp = timestamp;
             this.inbound = inbound;
+            this.topicPath = topicPath;
+            this.payload = payload;
+            this.QoS = QoS;
         }
 
-        public static CommitOperation inbound(IMqttsnContext context, IMqttsnMessage publish){
-            return new CommitOperation(publish, context, System.currentTimeMillis(), true);
+        public static CommitOperation inbound(IMqttsnContext context, String topicPath, int QoS, byte[] payload){
+            return new CommitOperation(context, System.currentTimeMillis(), topicPath, QoS, payload, true);
         }
 
-        public static CommitOperation outbound(IMqttsnContext context, IMqttsnMessage publish, UUID messageId){
-            CommitOperation c = new CommitOperation(publish, context, System.currentTimeMillis(), false);
+        public static CommitOperation outbound(IMqttsnContext context, UUID messageId, String topicPath, int QoS, byte[] payload){
+            CommitOperation c = new CommitOperation(context, System.currentTimeMillis(), topicPath, QoS, payload, false);
             c.messageId = messageId;
             return c;
         }
