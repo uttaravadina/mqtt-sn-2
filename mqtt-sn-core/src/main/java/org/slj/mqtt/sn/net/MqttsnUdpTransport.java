@@ -107,7 +107,6 @@ public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
             NetworkAddress address = context.getNetworkContext().getNetworkAddress();
             InetAddress inetAddress = InetAddress.getByName(address.getHostAddress());
             DatagramPacket packet = new DatagramPacket(payload, payload.length, inetAddress, address.getPort());
-            logger.log(Level.FINE, String.format("writing [%s] bytes to [%s] port [%s]", payload.length, inetAddress, address.getPort()));
             socket.send(packet);
         } catch(Exception e){
             throw new MqttsnException(e);

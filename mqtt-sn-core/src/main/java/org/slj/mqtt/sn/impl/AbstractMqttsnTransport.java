@@ -99,7 +99,7 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
     protected void receiveFromTransportInternal(INetworkContext networkContext, ByteBuffer buffer) {
         try {
             byte[] data = drain(buffer);
-            logger.log(Level.FINE, String.format("receiving [%s] bytes for [%s] from transport on thread [%s](%s)", data.length, networkContext,
+            logger.log(Level.INFO, String.format("receiving [%s] bytes for [%s] from transport on thread [%s](%s)", data.length, networkContext,
                     Thread.currentThread().getName(), Thread.currentThread().getId()));
             IMqttsnMessage message = getRegistry().getCodec().decode(data);
             if(networkContext.getMqttsnContext() == null || message instanceof MqttsnConnect){
@@ -129,7 +129,7 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
     protected void writeToTransportInternal(IMqttsnContext context, IMqttsnMessage message){
         try {
             byte[] data = registry.getCodec().encode(message);
-            logger.log(Level.FINE, String.format("[%s] writing [%s] to transport on thread [%s](%s)", context, message,
+            logger.log(Level.INFO, String.format("[%s] writing [%s] to transport on thread [%s](%s)", context, message,
                     Thread.currentThread().getName(), Thread.currentThread().getId()));
             writeToTransport(context, ByteBuffer.wrap(data, 0 , data.length));
             notifyTrafficSent(context.getNetworkContext(), data, message);

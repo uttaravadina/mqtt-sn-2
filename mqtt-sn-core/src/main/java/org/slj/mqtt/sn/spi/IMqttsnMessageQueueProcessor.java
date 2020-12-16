@@ -10,5 +10,11 @@ import org.slj.mqtt.sn.model.IMqttsnContext;
 public interface IMqttsnMessageQueueProcessor<T extends IMqttsnRuntimeRegistry>
             extends IMqttsnService<T> {
 
-    boolean process(IMqttsnContext context) throws MqttsnException ;
+    static enum RESULT {
+        REMOVE_PROCESS,
+        BACKOFF_PROCESS,
+        REPROCESS
+    }
+
+    RESULT process(IMqttsnContext context) throws MqttsnException ;
 }

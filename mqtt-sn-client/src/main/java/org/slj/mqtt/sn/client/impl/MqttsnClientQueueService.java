@@ -29,6 +29,7 @@ import org.slj.mqtt.sn.client.spi.IMqttsnClientRuntimeRegistry;
 import org.slj.mqtt.sn.impl.AbstractMqttsnBackoffThreadService;
 import org.slj.mqtt.sn.impl.MqttsnMessageQueueProcessor;
 import org.slj.mqtt.sn.model.IMqttsnContext;
+import org.slj.mqtt.sn.spi.IMqttsnMessageQueueProcessor;
 import org.slj.mqtt.sn.spi.MqttsnException;
 
 import java.util.Iterator;
@@ -50,7 +51,7 @@ public class MqttsnClientQueueService
             boolean resetBackoff = true;
             while(itr.hasNext()){
                 IMqttsnContext context = itr.next();
-                resetBackoff &= ! registry.getQueueProcessor().process(context);
+                resetBackoff &= registry.getQueueProcessor().process(context) != IMqttsnMessageQueueProcessor.RESULT.REPROCESS;
             }
             return resetBackoff;
         } catch(Exception e){

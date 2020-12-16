@@ -66,15 +66,28 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
             synchronized (flushOperations) {
                 while (flushItr.hasNext()) {
                     FlushQueueOperation operation = flushItr.next();
-                    boolean process = operation.timestamp + getRegistry().getOptions().getMinFlushTime() < System.currentTimeMillis();
+
+                    long delta = (long) Math.pow(2, Math.min(operation.count, 10)) * 250;
+                    boolean process = operation.timestamp + delta + getRegistry().getOptions().getMinFlushTime() < System.currentTimeMillis();
                     if(!process) continue;
                     try {
-                        if(registry.getQueueProcessor().process(operation.context)){
-                            logger.log(Level.INFO, String.format("determined [%s] queue is empty, removing context from flush", operation.context));
-                            flushItr.remove();
-                        } else {
-                            //knock the time on for another attempt
-                            operation.timestamp = System.currentTimeMillis();
+                        IMqttsnMessageQueueProcessor.RESULT result
+                                = registry.getQueueProcessor().process(operation.context);
+                        operation.timestamp = System.currentTimeMillis();
+
+                        switch(result){
+                            case REMOVE_PROCESS:
+                                logger.log(Level.INFO, String.format("removing context from flush", operation.context));
+                                flushItr.remove();
+                                break;
+                            case REPROCESS:
+                                //knock the time on for another attempt
+                                operation.count = 0;
+                                break;
+                            case BACKOFF_PROCESS:
+                                //knock the time on for another attempt
+                                operation.count++;
+                                break;
                         }
                     } catch(Exception e){
                         logger.log(Level.SEVERE, "error flushing context on state thread;", e);
@@ -414,14 +427,14 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
 
     @Override
     public void scheduleFlush(IMqttsnContext context) throws MqttsnException {
-        flushOperations.add(new FlushQueueOperation(context, System.currentTimeMillis()));
+        if(flushOperations.add(new FlushQueueOperation(context, System.currentTimeMillis()))){
+            logger.log(Level.INFO, String.format("added flush for [%s]", context));
+        }
     }
 
     @Override
     public boolean canSend(IMqttsnContext context) throws MqttsnException {
-        synchronized (context){
-            return countInflight(context) == 0;
-        }
+        return countInflight(context) == 0;
     }
 
     protected String getTopicPathFromPublish(IMqttsnContext context, MqttsnPublish publish) throws MqttsnException {
@@ -474,6 +487,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
 
         protected IMqttsnContext context;
         protected long timestamp;
+        protected int count;
 
         public FlushQueueOperation(IMqttsnContext context, long timestamp){
             this.context = context;
