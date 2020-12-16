@@ -36,6 +36,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -47,8 +48,22 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
     @Override
     public void start(U runtime) throws MqttsnException {
         super.start(runtime);
+        logger.log(Level.INFO, String.format("starting udp with options [%s]", System.identityHashCode(runtime.getOptions())));
         if(runtime.getOptions().getThreadHandoffFromTransport()){
-            executorService = Executors.newSingleThreadExecutor();
+            int threadCount = runtime.getOptions().getHandoffThreadCount();
+            executorService =
+                    Executors.newFixedThreadPool(threadCount, new ThreadFactory() {
+                        int count = 0;
+                        ThreadGroup tg = new ThreadGroup("mqtt-sn-handoff");
+
+                        @Override
+                        public Thread newThread(Runnable r) {
+                            Thread t = new Thread(tg, r, "mqtt-sn-handoff-thread-" + ++count);
+                            t.setPriority(Thread.MIN_PRIORITY + 1);
+                            return t;
+                        }
+                    });
+             logger.log(Level.INFO, String.format("starting transport with [%s] handoff threads", threadCount));
         }
     }
 
@@ -73,17 +88,53 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
 
     @Override
     public void receiveFromTransport(INetworkContext context, ByteBuffer buffer) {
-        byte[] data = drain(buffer);
-        IMqttsnMessage message = getRegistry().getCodec().decode(data);
+        if(registry.getOptions().getThreadHandoffFromTransport()){
+            executorService.submit(
+                    () -> receiveFromTransportInternal(context, buffer));
+        } else {
+            receiveFromTransportInternal(context, buffer);
+        }
+    }
+
+    protected void receiveFromTransportInternal(INetworkContext networkContext, ByteBuffer buffer) {
         try {
-            if(registry.getOptions().getThreadHandoffFromTransport()){
-                executorService.submit(
-                        () -> receiveFromTransport(context, message));
-            } else {
-                receiveFromTransport(context, message);
+            byte[] data = drain(buffer);
+            logger.log(Level.FINE, String.format("receiving [%s] bytes for [%s] from transport on thread [%s](%s)", data.length, networkContext,
+                    Thread.currentThread().getName(), Thread.currentThread().getId()));
+            IMqttsnMessage message = getRegistry().getCodec().decode(data);
+            if(networkContext.getMqttsnContext() == null || message instanceof MqttsnConnect){
+                IMqttsnContext mqttsnContext = registry.getContextFactory().createInitialContext(networkContext, message);
+                if(mqttsnContext != null){
+                    networkContext.setMqttsnContext(mqttsnContext);
+                    registry.getNetworkRegistry().putContext(networkContext);
+                }
             }
-        } finally {
-            notifyTrafficReceived(context, data, message);
+            registry.getMessageHandler().receiveMessage(networkContext.getMqttsnContext(), message);
+            notifyTrafficReceived(networkContext, data, message);
+        } catch(Throwable t){
+            logger.log(Level.SEVERE, "error receiving message from transport", t);
+        }
+    }
+
+    @Override
+    public void writeToTransport(IMqttsnContext context, IMqttsnMessage message) {
+        if(registry.getOptions().getThreadHandoffFromTransport()){
+            executorService.submit(
+                    () -> writeToTransportInternal(context, message));
+        } else {
+            writeToTransportInternal(context, message);
+        }
+    }
+
+    protected void writeToTransportInternal(IMqttsnContext context, IMqttsnMessage message){
+        try {
+            byte[] data = registry.getCodec().encode(message);
+            logger.log(Level.FINE, String.format("[%s] writing [%s] to transport on thread [%s](%s)", context, message,
+                    Thread.currentThread().getName(), Thread.currentThread().getId()));
+            writeToTransport(context, ByteBuffer.wrap(data, 0 , data.length));
+            notifyTrafficSent(context.getNetworkContext(), data, message);
+        } catch(Throwable e){
+            logger.log(Level.SEVERE, String.format("[%s] transport layer errord sending buffer", context), e);
         }
     }
 
@@ -98,48 +149,6 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
         List<IMqttsnTrafficListener> list = getRegistry().getTrafficListeners();
         if(list != null && !list.isEmpty()){
             list.stream().forEach(l -> l.trafficSent(context, data, message));
-        }
-    }
-
-    protected void receiveFromTransport(INetworkContext networkContext, IMqttsnMessage message) {
-        try {
-            logger.log(Level.FINE, String.format("[%s] receive from transport on thread [%s](%s)", networkContext,
-                    Thread.currentThread().getName(), Thread.currentThread().getId()));
-            if(networkContext.getMqttsnContext() == null || message instanceof MqttsnConnect){
-                IMqttsnContext mqttsnContext = registry.getContextFactory().createInitialContext(networkContext, message);
-                if(mqttsnContext != null){
-                    networkContext.setMqttsnContext(mqttsnContext);
-                    registry.getNetworkRegistry().putContext(networkContext);
-                }
-            }
-            registry.getMessageHandler().receiveMessage(networkContext.getMqttsnContext(), message);
-        } catch(Throwable t){
-            logger.log(Level.SEVERE, "error receiving message from transport", t);
-        }
-    }
-
-    @Override
-    public void writeToTransport(IMqttsnContext context, IMqttsnMessage message) {
-        byte[] data = registry.getCodec().encode(message);
-        try {
-            if(registry.getOptions().getThreadHandoffFromTransport()){
-                executorService.submit(
-                        () -> writeToTransportInternal(context, ByteBuffer.wrap(data, 0 , data.length)));
-            } else {
-                writeToTransportInternal(context, ByteBuffer.wrap(data, 0 , data.length));
-            }
-        } finally {
-            notifyTrafficSent(context.getNetworkContext(), data, message);
-        }
-    }
-
-    protected void writeToTransportInternal(IMqttsnContext context, ByteBuffer buffer){
-        try {
-            logger.log(Level.FINE, String.format("[%s] writing to transport on thread [%s](%s)", context,
-                    Thread.currentThread().getName(), Thread.currentThread().getId()));
-            writeToTransport(context, buffer);
-        } catch(Exception e){
-            logger.log(Level.SEVERE, String.format("[%s] transport layer errord sending buffer", context), e);
         }
     }
 

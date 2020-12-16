@@ -37,6 +37,7 @@ public class MqttsnOptions {
     public static final boolean DEFAULT_BLOCK_SEND_ON_PREVIOUS_CONFIRMATION = true;
     public static final boolean DEFAULT_DISCOVERY_ENABLED = false;
     public static final boolean DEFAULT_THREAD_HANDOFF_ENABLED = true;
+    public static final int DEFAULT_HANDOFF_THREAD_COUNT = 5;
     public static final int DEFAULT_MAX_TOPICS_IN_REGISTRY = 128;
     public static final int DEFAULT_MSG_ID_STARTS_AT = 1;
     public static final int DEFAULT_ALIAS_STARTS_AT = 1;
@@ -54,6 +55,7 @@ public class MqttsnOptions {
     private boolean blockSendOnPreviousConfirmation = DEFAULT_BLOCK_SEND_ON_PREVIOUS_CONFIRMATION;
     private boolean threadHandoffFromTransport = DEFAULT_THREAD_HANDOFF_ENABLED;
     private boolean enableDiscovery = DEFAULT_DISCOVERY_ENABLED;
+    private int handoffThreadCount = DEFAULT_HANDOFF_THREAD_COUNT;
     private int minFlushTime = DEFAULT_MIN_FLUSH_TIME;
     private int maxTopicsInRegistry = DEFAULT_MAX_TOPICS_IN_REGISTRY;
     private int msgIdStartAt = DEFAULT_MSG_ID_STARTS_AT;
@@ -69,6 +71,11 @@ public class MqttsnOptions {
 
     private Map<String, Integer> predefinedTopics;
     private Map<String, NetworkAddress> networkAddressEntries;
+
+    public MqttsnOptions withHandoffThreadCount(int handoffThreadCount){
+        this.handoffThreadCount = handoffThreadCount;
+        return this;
+    }
 
     public MqttsnOptions withMinFlushTime(int minFlushTime){
         this.minFlushTime = minFlushTime;
@@ -240,6 +247,10 @@ public class MqttsnOptions {
 
     public boolean getThreadHandoffFromTransport() {
         return threadHandoffFromTransport;
+    }
+
+    public int getHandoffThreadCount() {
+        return handoffThreadCount;
     }
 
     public int getSearchGatewayRadius() {

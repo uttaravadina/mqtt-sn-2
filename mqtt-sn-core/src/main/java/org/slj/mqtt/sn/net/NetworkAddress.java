@@ -25,7 +25,9 @@
 package org.slj.mqtt.sn.net;
 
 import java.io.Serializable;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.Objects;
 
 public class NetworkAddress implements Serializable {
@@ -34,8 +36,8 @@ public class NetworkAddress implements Serializable {
     private final int port;
     private final String path;
 
-    public NetworkAddress(int port, String hostAddress) {
-        this.hostAddress = hostAddress;
+    public NetworkAddress(int port, String hostAddress) throws UnknownHostException {
+        this.hostAddress = InetAddress.getByName(hostAddress).getHostAddress();
         if(port < 0 || port > 65535) throw new IllegalArgumentException("port must be in range 0 <= port <= 65535");
         this.port = port;
         this.path = null;
@@ -78,11 +80,11 @@ public class NetworkAddress implements Serializable {
         return InetSocketAddress.createUnresolved(hostAddress, port);
     }
 
-    public static NetworkAddress from(InetSocketAddress address){
+    public static NetworkAddress from(InetSocketAddress address) throws UnknownHostException {
         return NetworkAddress.from(address.getPort(), address.getAddress().getHostAddress());
     }
 
-    public static NetworkAddress from(int port, String hostAddress){
+    public static NetworkAddress from(int port, String hostAddress) throws UnknownHostException {
         return new NetworkAddress(port, hostAddress);
     }
 
@@ -91,7 +93,11 @@ public class NetworkAddress implements Serializable {
     }
 
     public static NetworkAddress localhost(int port) {
-        return new NetworkAddress(port, "127.0.0.1");
+        try {
+            return new NetworkAddress(port, "127.0.0.1");
+        } catch(UnknownHostException e){
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

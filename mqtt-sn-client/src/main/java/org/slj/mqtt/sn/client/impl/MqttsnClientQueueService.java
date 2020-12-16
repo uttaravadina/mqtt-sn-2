@@ -60,6 +60,6 @@ public class MqttsnClientQueueService
     }
 
     protected int getBackoffFactor(){
-        return 10;
+        return 5;
     }
 }
