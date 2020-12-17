@@ -44,23 +44,3 @@ public class Example {
     }
 }
 ```
-
-### MQTT-SN client configuration options
-The default client behaviour can be customised using configuration options. Sensible defaults have been specified which allow it to all work out of the box.
-Many of the options below are applicable for both the client and gateway runtimes. 
-
-Options | Default Value | Type | Description
------------- | ------------- | ------------- | -------------
-contextId | NULL | String | This is used as either the clientId (when in a client runtime) or the gatewayId (when in a gateway runtime). **NB: This is a required field and must be set by the application.**
-maxWait | 10000 | int | Time in milliseconds to wait for a confirmation message where required. When calling a blocking method, this is the time the method will block until either the confirmation is received OR the timeout expires.
-threadHandoffFromTransport | true | boolean | Should the transport layer delegate to and from the handler layer using a thread hand-off. **NB: Depends on your transport implementation as to whether you should block.** 
-blockSendOnPreviousConfirmation | true | boolean | The client can choose to NOT waitOnCompletion of a previous delivery. If the application then immediately send a new message, the client will either fail-fast with a runtime exception or optionally block until the previous operation completes.
-enableDiscovery | true | boolean | When discovery is enabled the client will listen for broadcast messages from local gateways and add them to its network registry as it finds them.
-maxTopicsInRegistry | 128 | int | Max number of topics which can reside in the CLIENT registry. This does NOT include predefined alias's.
-msgIdStartAt | 1 | int (max. 65535) | Starting number for message Ids sent from the client to the gateways (each gateway has a unique count).
-aliasStartAt | 1 | int (max. 65535) | Starting number for alias's used to store topic values (NB: only applicable to gateways).
-maxMessagesInflight | 1 | int (max. 65535) | In theory, a gateway and broker can have multiple messages inflight concurrently. The spec suggests only 1 confirmation message is inflight at any given time. (NB: do NOT change this).
-maxMessagesInQueue | 100 | int | Max number of messages allowed in a client's queue. When the max is reached any new messages will be discarded.
-requeueOnInflightTimeout | true | boolean | When a publish message fails to confirm, should it be requeued for DUP sending at a later point.
-predefinedTopics | Config| Map | Where a client or gateway both know a topic alias in advance, any messages or subscriptions to the topic will be made using the predefined IDs. 
-networkAddressEntries | Config | Map | You can prespecify known locations for gateways and clients in the network address registry. NB. The runtime will dynamically update the registry with new clients / gateways as they are discovered. In the case of clients, they are unable to connect or message until at least 1 gateway is defined in config OR discovered.
