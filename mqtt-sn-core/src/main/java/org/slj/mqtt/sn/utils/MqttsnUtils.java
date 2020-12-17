@@ -30,6 +30,7 @@ import org.slj.mqtt.sn.model.MqttsnWaitToken;
 import org.slj.mqtt.sn.spi.IMqttsnMessage;
 import org.slj.mqtt.sn.spi.MqttsnException;
 import org.slj.mqtt.sn.spi.MqttsnExpectationFailedException;
+import org.slj.mqtt.sn.wire.MqttsnWireUtils;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -128,18 +129,37 @@ public class MqttsnUtils {
         return false;
     }
 
-    public static void validateQos(int value) throws MqttsnExpectationFailedException{
+    public static boolean validTopicScheme(int topicIdType, byte[] topicBytes, boolean topicDataAsString) {
+        if(topicIdType == MqttsnConstants.TOPIC_PREDEFINED){
+            return topicBytes.length == 2;
+        } else if(topicIdType == MqttsnConstants.TOPIC_NORMAL){
+            return topicDataAsString ? validTopicName(new String(topicBytes, MqttsnConstants.CHARSET)) : topicBytes.length == 2;
+        } else if(topicIdType == MqttsnConstants.TOPIC_SHORT){
+            return topicBytes.length == 2;
+        }
+        else
+            return false;
+    }
+
+    public static boolean validTopicName(String topicString) {
+       return topicString != null && topicString.trim().length() > 0;
+    }
+
+    public static boolean validQos(int value) {
         if(value < -1 || value > 2)
-            throw new MqttsnExpectationFailedException("value was outside allowed QoS range -1 - 2");
+            return false;
+        return true;
     }
 
-    public static void validateUInt16(int value) throws MqttsnExpectationFailedException{
+    public static boolean validUInt16(int value) {
         if(value < 0 || value > MqttsnConstants.USIGNED_MAX_16)
-            throw new MqttsnExpectationFailedException("value was outside allowed range 0-" + MqttsnConstants.USIGNED_MAX_16);
+            return false;
+        return true;
     }
 
-    public static void validateUInt8(int value) throws MqttsnExpectationFailedException{
+    public static boolean validInt8(int value) throws MqttsnExpectationFailedException{
         if(value < 0 || value > MqttsnConstants.USIGNED_MAX_8)
-            throw new MqttsnExpectationFailedException("value was outside allowed range 0-" + MqttsnConstants.USIGNED_MAX_8);
+            return false;
+        return true;
     }
 }

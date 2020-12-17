@@ -114,8 +114,8 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
             }
 
             if(authd && networkContext.getMqttsnContext() != null){
-                registry.getMessageHandler().receiveMessage(networkContext.getMqttsnContext(), message);
                 notifyTrafficReceived(networkContext, data, message);
+                registry.getMessageHandler().receiveMessage(networkContext.getMqttsnContext(), message);
             } else {
                 logger.log(Level.WARNING, "auth could not be established, send disconnect");
                 writeToTransportInternal(networkContext, registry.getMessageFactory().createDisconnect(), false);

@@ -37,6 +37,7 @@ import org.slj.mqtt.sn.model.TopicInfo;
 import org.slj.mqtt.sn.spi.IMqttsnMessage;
 import org.slj.mqtt.sn.spi.MqttsnException;
 import org.slj.mqtt.sn.utils.MqttsnUtils;
+import org.slj.mqtt.sn.wire.MqttsnWireUtils;
 import org.slj.mqtt.sn.wire.version1_2.payload.*;
 
 import java.util.Set;
@@ -151,16 +152,30 @@ public class MqttsnGatewayMessageHandler
     @Override
     protected IMqttsnMessage handleDisconnect(IMqttsnContext context, IMqttsnMessage initialDisconnect, IMqttsnMessage receivedDisconnect) throws MqttsnException, MqttsnCodecException, MqttsnInvalidSessionStateException {
 
-        IMqttsnSessionState state = getSessionState(context, false);
         MqttsnDisconnect d = (MqttsnDisconnect) receivedDisconnect;
-        registry.getGatewaySessionService().disconnect(state, d.getDuration());
-        return super.handleDisconnect(context, initialDisconnect, receivedDisconnect);
+        if(!MqttsnUtils.validUInt16(d.getDuration())){
+            logger.log(Level.WARNING, String.format("invalid sleep duration specified, reject client [%s]", d.getDuration()));
+            return super.handleDisconnect(context, initialDisconnect, receivedDisconnect);
+        } else {
+            IMqttsnSessionState state = getSessionState(context, false);
+            registry.getGatewaySessionService().disconnect(state, d.getDuration());
+            return super.handleDisconnect(context, initialDisconnect, receivedDisconnect);
+        }
     }
 
     @Override
     protected IMqttsnMessage handlePingreq(IMqttsnContext context, IMqttsnMessage message) throws MqttsnException, MqttsnCodecException, MqttsnInvalidSessionStateException {
 
         IMqttsnSessionState state = getSessionState(context);
+        MqttsnPingreq ping = (MqttsnPingreq) message;
+        if(ping.getClientId() != null){
+            //-- ensure the clientid matches the context
+            if(!ping.getClientId().trim().equals(context.getId())){
+                logger.log(Level.WARNING, "ping-req contained clientId that did not match that from context");
+                return super.handlePingreq(context, message);
+            }
+        }
+
         if(MqttsnUtils.in(state.getClientState(), MqttsnClientState.ASLEEP, MqttsnClientState.AWAKE)){
             //-- only wake the client if there is messages outstanding
             if(registry.getMessageQueue().size(context) > 0){
@@ -177,9 +192,16 @@ public class MqttsnGatewayMessageHandler
     }
 
     @Override
-    protected IMqttsnMessage handleSubscribe(IMqttsnContext context, IMqttsnMessage message) throws MqttsnException, MqttsnCodecException, MqttsnInvalidSessionStateException {
+    protected IMqttsnMessage handleSubscribe(IMqttsnContext context, IMqttsnMessage message)
+            throws MqttsnException, MqttsnCodecException, MqttsnInvalidSessionStateException {
 
         MqttsnSubscribe subscribe = (MqttsnSubscribe) message;
+        if(!MqttsnUtils.validTopicScheme(subscribe.getTopicType(), subscribe.getTopicData(), true)){
+            logger.log(Level.WARNING, String.format("supplied topic did not appear to be valid, return INVALID TOPIC ID typeId [%s] topicData [%s]", subscribe.getTopicType(),
+                    MqttsnWireUtils.toBinary(subscribe.getTopicData())));
+            return registry.getMessageFactory().createSuback(0, 0, MqttsnConstants.RETURN_CODE_INVALID_TOPIC_ID);
+        }
+
         IMqttsnSessionState state = getSessionState(context);
         TopicInfo info = registry.getTopicRegistry().normalize((byte) subscribe.getTopicType(), subscribe.getTopicData(), true);
         SubscribeResult result = registry.getGatewaySessionService().subscribe(state, info, subscribe.getQoS());
@@ -195,6 +217,13 @@ public class MqttsnGatewayMessageHandler
     protected IMqttsnMessage handleUnsubscribe(IMqttsnContext context, IMqttsnMessage message) throws MqttsnException, MqttsnCodecException, MqttsnInvalidSessionStateException {
 
         MqttsnUnsubscribe unsubscribe = (MqttsnUnsubscribe) message;
+
+        if(!MqttsnUtils.validTopicScheme(unsubscribe.getTopicType(), unsubscribe.getTopicData(), true)){
+            logger.log(Level.WARNING, String.format("supplied topic did not appear to be valid, return INVALID TOPIC ID typeId [%s] topicData [%s]", unsubscribe.getTopicType(),
+                    MqttsnWireUtils.toBinary(unsubscribe.getTopicData())));
+            return registry.getMessageFactory().createUnsuback();
+        }
+
         IMqttsnSessionState state = getSessionState(context);
         TopicInfo info = registry.getTopicRegistry().normalize((byte) unsubscribe.getTopicType(), unsubscribe.getTopicData(), true);
         UnsubscribeResult result = registry.getGatewaySessionService().unsubscribe(state, info);
@@ -207,10 +236,17 @@ public class MqttsnGatewayMessageHandler
             throws MqttsnException, MqttsnCodecException, MqttsnInvalidSessionStateException {
 
         MqttsnRegister register = (MqttsnRegister) message;
-        IMqttsnSessionState state = getSessionState(context);
-        RegisterResult result = registry.getGatewaySessionService().register(state, register.getTopicName());
-        processSessionResult(result);
-        return registry.getMessageFactory().createRegack(result.getTopicInfo().getTopicId(), MqttsnConstants.RETURN_CODE_ACCEPTED);
+
+        if(!MqttsnUtils.validTopicName(register.getTopicName())){
+            logger.log(Level.WARNING,
+                    String.format("invalid topic [%s] received during register, reply with error code", register.getTopicName()));
+            return registry.getMessageFactory().createRegack(0, MqttsnConstants.RETURN_CODE_INVALID_TOPIC_ID);
+        } else {
+            IMqttsnSessionState state = getSessionState(context);
+            RegisterResult result = registry.getGatewaySessionService().register(state, register.getTopicName());
+            processSessionResult(result);
+            return registry.getMessageFactory().createRegack(result.getTopicInfo().getTopicId(), MqttsnConstants.RETURN_CODE_ACCEPTED);
+        }
     }
 
     @Override

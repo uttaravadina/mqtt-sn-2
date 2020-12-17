@@ -106,7 +106,7 @@ public class Mqttsn_v1_2_Codec extends AbstractMqttsnCodec {
                 msg = new MqttsnDisconnect();
                 break;
             case MqttsnConstants.SUBSCRIBE:
-                validateLengthGreaterThanOrEquals(data, 7);
+                validateLengthGreaterThanOrEquals(data, 6);
                 msg = new MqttsnSubscribe();
                 break;
             case MqttsnConstants.SUBACK:
@@ -114,7 +114,7 @@ public class Mqttsn_v1_2_Codec extends AbstractMqttsnCodec {
                 msg = new MqttsnSuback();
                 break;
             case MqttsnConstants.UNSUBSCRIBE:
-                validateLengthGreaterThanOrEquals(data, 7);
+                validateLengthGreaterThanOrEquals(data, 6);
                 msg = new MqttsnUnsubscribe();
                 break;
             case MqttsnConstants.UNSUBACK:

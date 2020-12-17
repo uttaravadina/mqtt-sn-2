@@ -87,7 +87,9 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
 
     @Override
     public void connect(int keepAlive, boolean cleanSession) throws MqttsnException{
-        MqttsnUtils.validateUInt16(keepAlive);
+        if(!MqttsnUtils.validUInt16(keepAlive)){
+            throw new MqttsnExpectationFailedException("invalid keepAlive supplied");
+        }
         IMqttsnSessionState state = checkSession(false);
         synchronized (this) {
             if (state.getClientState() != MqttsnClientState.CONNECTED) {
@@ -105,7 +107,12 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
 
     @Override
     public void publish(String topicName, int QoS, byte[] data) throws MqttsnException{
-        MqttsnUtils.validateQos(QoS);
+        if(!MqttsnUtils.validQos(QoS)){
+            throw new MqttsnExpectationFailedException("invalid QoS supplied");
+        }
+        if(!MqttsnUtils.validTopicName(topicName)){
+            throw new MqttsnExpectationFailedException("invalid topicName supplied");
+        }
         IMqttsnSessionState state = checkSession(QoS >= 0);
         if(!registry.getMessageQueue().offer(state.getContext(),
                 new QueuedPublishMessage(
@@ -116,7 +123,12 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
 
     @Override
     public void subscribe(String topicName, int QoS) throws MqttsnException{
-        MqttsnUtils.validateQos(QoS);
+        if(!MqttsnUtils.validTopicName(topicName)){
+            throw new MqttsnExpectationFailedException("invalid topicName supplied");
+        }
+        if(!MqttsnUtils.validQos(QoS)){
+            throw new MqttsnExpectationFailedException("invalid QoS supplied");
+        }
         IMqttsnSessionState state = checkSession(true);
         IMqttsnMessage message = registry.getMessageFactory().createSubscribe(QoS, topicName);
         synchronized (this){
@@ -128,6 +140,9 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
 
     @Override
     public void unsubscribe(String topicName) throws MqttsnException{
+        if(!MqttsnUtils.validTopicName(topicName)){
+            throw new MqttsnExpectationFailedException("invalid topicName supplied");
+        }
         IMqttsnSessionState state = checkSession(true);
         IMqttsnMessage message = registry.getMessageFactory().createUnsubscribe(topicName);
         synchronized (this){
@@ -140,8 +155,13 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     @Override
     public void supervisedSleepWithWake(int duration, int wakeAfterInterval, boolean connectOnFinish)  throws MqttsnException {
 
-        MqttsnUtils.validateUInt16(duration);
-        MqttsnUtils.validateUInt16(wakeAfterInterval);
+        if(!MqttsnUtils.validUInt16(duration)){
+            throw new MqttsnExpectationFailedException("invalid duration supplied");
+        }
+
+        if(!MqttsnUtils.validUInt16(wakeAfterInterval)){
+            throw new MqttsnExpectationFailedException("invalid wakeAfterInterval supplied");
+        }
 
         if(wakeAfterInterval > duration)
            throw new MqttsnExpectationFailedException("sleep duration must be greater than the wake after period");
@@ -152,8 +172,6 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         while(sleepUntil > (now = System.currentTimeMillis())){
             long timeLeft = sleepUntil - now;
             int period = (int) Math.min(duration, timeLeft / 1000);
-//            sleep(period);
-
             //-- sleep for the wake after period
             try {
                 long wake = Math.min(wakeAfterInterval, period);
@@ -176,7 +194,9 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
 
     @Override
     public void sleep(int duration)  throws MqttsnException{
-        MqttsnUtils.validateUInt16(duration);
+        if(!MqttsnUtils.validUInt16(duration)){
+            throw new MqttsnExpectationFailedException("invalid duration supplied");
+        }
         logger.log(Level.INFO, String.format("sleeping for [%s] seconds", duration));
         IMqttsnSessionState state = checkSession(true);
         IMqttsnMessage message = registry.getMessageFactory().createDisconnect(duration);
