@@ -100,7 +100,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
                 Optional<IMqttsnMessage> response =
                         registry.getMessageStateService().waitForCompletion(state.getContext(), token);
                 stateChangeResponseCheck(state, token, response, MqttsnClientState.CONNECTED);
-                ensureAwake();
+                startQueueProcessing();
             }
         }
     }
@@ -204,7 +204,8 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
             MqttsnWaitToken token = registry.getMessageStateService().sendMessage(state.getContext(), message);
             Optional<IMqttsnMessage> response = registry.getMessageStateService().waitForCompletion(state.getContext(), token);
             stateChangeResponseCheck(state, token, response, MqttsnClientState.ASLEEP);
-            pauseRuntime();
+            clearState(state.getContext(),false);
+            stopQueueProcessing();
         }
     }
 
@@ -217,7 +218,6 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
                     MqttsnClientState.ASLEEP)){
                 MqttsnWaitToken token = registry.getMessageStateService().sendMessage(state.getContext(), message);
                 state.setClientState(MqttsnClientState.AWAKE);
-                ensureAwake();
                 Optional<IMqttsnMessage> response = registry.getMessageStateService().waitForCompletion(state.getContext(), token);
                 stateChangeResponseCheck(state, token, response, MqttsnClientState.ASLEEP);
             } else {
@@ -238,17 +238,17 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
                     MqttsnWaitToken token = registry.getMessageStateService().sendMessage(state.getContext(), message);
                     Optional<IMqttsnMessage> response = registry.getMessageStateService().waitForCompletion(state.getContext(), token);
                     stateChangeResponseCheck(state, token, response, MqttsnClientState.DISCONNECTED);
-
                 } else if (MqttsnUtils.in(state.getClientState(), MqttsnClientState.PENDING)) {
                     state.setClientState(MqttsnClientState.DISCONNECTED);
                 }
+                clearState(state.getContext(),true);
             }
         } finally {
-            pauseRuntime();
+            stopQueueProcessing();
         }
     }
 
-    protected void pauseRuntime() throws MqttsnException {
+    protected void stopQueueProcessing() throws MqttsnException {
         //-- ensure we stop message queue sending when we are not connected
         IMqttsnService service = ((IMqttsnClientRuntimeRegistry)registry).getClientQueueService();
         synchronized (service){
@@ -258,12 +258,21 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         }
     }
 
-    protected void ensureAwake() throws MqttsnException {
+    protected void startQueueProcessing() throws MqttsnException {
         IMqttsnService service = ((IMqttsnClientRuntimeRegistry)registry).getClientQueueService();
         synchronized (service){
             if(!service.running()){
                 callStartup(service);
             }
+        }
+    }
+
+    protected void clearState(IMqttsnContext context, boolean deepClear) throws MqttsnException {
+        registry.getTopicRegistry().clear(context,
+                registry.getOptions().isSleepClearsRegistrations());
+        if(deepClear){
+            registry.getSubscriptionRegistry().clear(context);
+            registry.getMessageQueue().clear(context);
         }
     }
 
@@ -296,6 +305,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
                 if(state.getContext().equals(context)){
                     state.setClientState(MqttsnClientState.DISCONNECTED);
                 }
+                clearState(context,true);
             }
         } catch(Exception e){
             logger.log(Level.WARNING, String.format("error handling unsolicited disconnect from gateway [%s]", context), e);

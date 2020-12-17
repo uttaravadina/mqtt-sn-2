@@ -306,7 +306,6 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
     protected abstract void afterHandle(IMqttsnContext context, IMqttsnMessage message, IMqttsnMessage response) throws MqttsnException;
 
     protected void afterResponse(IMqttsnContext context, IMqttsnMessage message, IMqttsnMessage response) throws MqttsnException {
-
     }
 
     protected void validateOriginatingMessage(IMqttsnContext context, IMqttsnMessage originatingMessage, IMqttsnMessage message)

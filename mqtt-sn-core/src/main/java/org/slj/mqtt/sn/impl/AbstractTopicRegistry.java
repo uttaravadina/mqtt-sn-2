@@ -17,7 +17,7 @@ public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
 
     @Override
     public TopicInfo register(IMqttsnContext context, String topicPath) throws MqttsnException {
-        Map<String, Integer> map = getRegistrations(context);
+        Map<String, Integer> map = getRegistrationsInternal(context, false);
         if(map.size() >= registry.getOptions().getMaxTopicsInRegistry()){
             logger.log(Level.WARNING, String.format("max number of registered topics reached for client [%s] >= [%s]", context, map.size()));
             throw new MqttsnException("max number of registered topics reached for client");
@@ -34,7 +34,7 @@ public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
     public void register(IMqttsnContext context, String topicPath, int topicAlias) throws MqttsnException {
 
         logger.log(Level.INFO, String.format("registering topic path [%s] -> [%s]", topicPath, topicAlias));
-        Map<String, Integer> map = getRegistrations(context);
+        Map<String, Integer> map = getRegistrationsInternal(context, false);
         if(map.containsKey(topicPath)){
             //update existing
             addOrUpdateRegistration(context, rationalizeTopic(context, topicPath), topicAlias);
@@ -49,7 +49,7 @@ public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
 
     @Override
     public boolean registered(IMqttsnContext context, String topicPath) throws MqttsnException {
-        Map<String, Integer> map = getRegistrations(context);
+        Map<String, Integer> map = getRegistrationsInternal(context, false);
         return map.containsKey(rationalizeTopic(context, topicPath));
     }
 
@@ -83,7 +83,7 @@ public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
 
     @Override
     public String lookupRegistered(IMqttsnContext context, int topicAlias) throws MqttsnException {
-        Map<String, Integer> map = getRegistrations(context);
+        Map<String, Integer> map = getRegistrationsInternal(context, false);
         Iterator<String> itr = map.keySet().iterator();
         synchronized (context){
             while(itr.hasNext()){
@@ -98,7 +98,7 @@ public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
 
     @Override
     public Integer lookupRegistered(IMqttsnContext context, String topicPath) throws MqttsnException {
-        Map<String, Integer> map = getRegistrations(context);
+        Map<String, Integer> map = getRegistrationsInternal(context, false);
         return map.get(rationalizeTopic(context, topicPath));
     }
 
@@ -186,9 +186,11 @@ public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
         return info;
     }
 
+
+
     protected abstract boolean addOrUpdateRegistration(IMqttsnContext context, String topicPath, int alias) throws MqttsnException;
 
-    protected abstract Map<String, Integer> getRegistrations(IMqttsnContext context) throws MqttsnException;
+    protected abstract Map<String, Integer> getRegistrationsInternal(IMqttsnContext context, boolean confirmedOnly) throws MqttsnException;
 
     protected abstract Map<String, Integer> getPredefinedTopics(IMqttsnContext context) throws MqttsnException;
 }

@@ -61,7 +61,7 @@ public abstract class AbstractMqttsnMessageWithFlagsField extends AbstractMqttsn
     }
 
     public int getQoS() {
-        return QoS;
+        return QoS == 3 ? -1 : QoS;
     }
 
     public void setQoS(int qoS) {

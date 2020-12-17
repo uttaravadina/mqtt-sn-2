@@ -279,29 +279,26 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
             if (message instanceof MqttsnPublish) {
                 MqttsnPublish pub = (MqttsnPublish) message;
                 if (((MqttsnPublish) message).getQoS() == 2) {
-                    if(countInflight(context) > 0){
-                        Map<Integer, InflightMessage> inflights = getInflightMessages(context);
-                        logger.log(Level.INFO, String.format("have message inflight [%s] & received a publish QoS2 that needs to go there too!",
-                                Objects.toString(inflights)));
-                        if(!inflights.containsKey(WEAK_ATTACH_ID)){
-                            throw new MqttsnExpectationFailedException("can only have 1 publish message inflight at a time");
-                        }
+                    int count = countInflight(context);
+                    if(count >= registry.getOptions().getMaxMessagesInflight()){
+                        logger.log(Level.WARNING, String.format("have [%s] existing message(s) inflight & new publish QoS2, replacing inflights!", count));
+                        clearInflight(context, 0);
                     }
                     //-- Qos 2 needs further confirmation before being sent to application
                     markInflight(context, message, null);
                 } else {
                     //-- Qos 0 & 1 are inbound are confirmed on receipt of message
+
                     CommitOperation op = CommitOperation.inbound(context,
                             getTopicPathFromPublish(context, pub),
                             ((MqttsnPublish) message).getQoS(),
                             ((MqttsnPublish) message).getData());
+                    logger.log(Level.INFO, String.format("committing inbound publish [%s]", op));
                     getUncommittedMessages(context).add(op);
                 }
             }
-
             return null;
         }
-
     }
 
     protected void confirmPublish(CommitOperation operation) {
@@ -320,7 +317,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
 
     protected MqttsnWaitToken markInflight(IMqttsnContext context, IMqttsnMessage message, QueuedPublishMessage queuedPublishMessage) throws MqttsnException {
 
-        if(countInflight(context) + 1 >
+        if(countInflight(context) >=
                 registry.getOptions().getMaxMessagesInflight()){
             logger.log(Level.INFO, String.format("[%s] max inflight message number reached", context));
             throw new MqttsnExpectationFailedException("max number of inflight messages reached");
@@ -441,6 +438,11 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         TopicInfo info = registry.getTopicRegistry().normalize((byte) publish.getTopicType(), publish.getTopicData(), false);
         String topicPath = registry.getTopicRegistry().topicPath(context, info, true);
         return topicPath;
+    }
+
+    @Override
+    public boolean removeInflight(IMqttsnContext context, int msgId) throws MqttsnException {
+        return removeInflightMessage(context, msgId) != null;
     }
 
     protected abstract InflightMessage removeInflightMessage(IMqttsnContext context, Integer messageId) throws MqttsnException ;

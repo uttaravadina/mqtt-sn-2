@@ -30,14 +30,12 @@ import org.slj.mqtt.sn.model.MqttsnContext;
 import org.slj.mqtt.sn.spi.IMqttsnRuntimeRegistry;
 import org.slj.mqtt.sn.spi.MqttsnException;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class MqttsnInMemoryTopicRegistry<T extends IMqttsnRuntimeRegistry>
         extends AbstractTopicRegistry<T> {
 
-    protected Map<IMqttsnContext, Map<String, Integer>> topicLookups;
+    protected Map<IMqttsnContext, Set<ConfirmableTopicRegistration>> topicLookups;
 
     @Override
     public void start(T runtime) throws MqttsnException {
@@ -45,14 +43,27 @@ public class MqttsnInMemoryTopicRegistry<T extends IMqttsnRuntimeRegistry>
         topicLookups = Collections.synchronizedMap(new HashMap<>());
     }
 
-    protected Map<String, Integer> getRegistrations(IMqttsnContext context){
-        Map<String, Integer> map = topicLookups.get(context);
-        if(map == null){
+    protected Set<ConfirmableTopicRegistration> getAll(IMqttsnContext context){
+        Set<ConfirmableTopicRegistration> set = topicLookups.get(context);
+        if(set == null){
             synchronized (this){
-                if((map = topicLookups.get(context)) == null){
-                    map = new HashMap<>();
-                    topicLookups.put(context, map);
+                if((set = topicLookups.get(context)) == null){
+                    set = new HashSet<>();
+                    topicLookups.put(context, set);
                 }
+            }
+        }
+        return set;
+    }
+
+    protected Map<String, Integer> getRegistrationsInternal(IMqttsnContext context, boolean confirmedOnly){
+        Set<ConfirmableTopicRegistration> set = getAll(context);
+        Map<String, Integer> map = new HashMap<>();
+        Iterator<ConfirmableTopicRegistration> itr  = set.iterator();
+        if(itr.hasNext()){
+            ConfirmableTopicRegistration reg = itr.next();
+            if(!confirmedOnly || reg.confirmed){
+                map.put(reg.topicPath, reg.aliasId);
             }
         }
         return map;
@@ -61,8 +72,22 @@ public class MqttsnInMemoryTopicRegistry<T extends IMqttsnRuntimeRegistry>
     @Override
     protected boolean addOrUpdateRegistration(IMqttsnContext context, String topicPath, int alias) throws MqttsnException {
 
-        Map<String, Integer> map = getRegistrations(context);
-        return map.put(topicPath, alias) == null;
+        Set<ConfirmableTopicRegistration> set = getAll(context);
+        Iterator<ConfirmableTopicRegistration> itr  = set.iterator();
+        boolean updated = false;
+        if(itr.hasNext()){
+            ConfirmableTopicRegistration reg = itr.next();
+            if(reg.topicPath.equals(topicPath)){
+                reg.confirmed = true;
+                reg.setAliasId(alias);
+                updated = true;
+            }
+        }
+        if(!updated){
+            set.add(new ConfirmableTopicRegistration(topicPath, alias, true));
+        }
+
+        return !updated;
     }
 
     @Override
@@ -76,7 +101,73 @@ public class MqttsnInMemoryTopicRegistry<T extends IMqttsnRuntimeRegistry>
     }
 
     @Override
+    public void clear(IMqttsnContext context, boolean hardClear) throws MqttsnException {
+        if(hardClear){
+            topicLookups.remove(context);
+        } else{
+            Set<ConfirmableTopicRegistration> set = topicLookups.get(context);
+            if(set != null){
+                Iterator<ConfirmableTopicRegistration> itr  = set.iterator();
+                if(itr.hasNext()){
+                    ConfirmableTopicRegistration reg = itr.next();
+                    reg.confirmed = false;
+                }
+            }
+        }
+    }
+
+    @Override
     public void clear(IMqttsnContext context) throws MqttsnException {
         topicLookups.remove(context);
+    }
+
+    static class ConfirmableTopicRegistration {
+
+        boolean confirmed;
+        String topicPath;
+        int aliasId;
+
+        public ConfirmableTopicRegistration(String topicPath, int aliasId, boolean confirmed){
+            this.topicPath = topicPath;
+            this.aliasId = aliasId;
+            this.confirmed = confirmed;
+        }
+
+        public boolean isConfirmed() {
+            return confirmed;
+        }
+
+        public void setConfirmed(boolean confirmed) {
+            this.confirmed = confirmed;
+        }
+
+        public String getTopicPath() {
+            return topicPath;
+        }
+
+        public void setTopicPath(String topicPath) {
+            this.topicPath = topicPath;
+        }
+
+        public int getAliasId() {
+            return aliasId;
+        }
+
+        public void setAliasId(int aliasId) {
+            this.aliasId = aliasId;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ConfirmableTopicRegistration that = (ConfirmableTopicRegistration) o;
+            return topicPath.equals(that.topicPath);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(topicPath);
+        }
     }
 }

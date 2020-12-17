@@ -130,6 +130,8 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
                     logger.log(Level.INFO, String.format("[%s] setting client state asleep for [%s]", state.getContext(), duration));
                     state.setKeepAlive(duration);
                     state.setClientState(MqttsnClientState.ASLEEP);
+                    registry.getTopicRegistry().clear(state.getContext(),
+                            registry.getOptions().isSleepClearsRegistrations());
                 } else {
                     logger.log(Level.INFO, String.format("[%s] disconnecting client", state.getContext()));
                     sessionLookup.remove(state.getContext());

@@ -44,6 +44,7 @@ public class MqttsnOptions {
     public static final int DEFAULT_MAX_MESSAGES_IN_FLIGHT = 2;
     public static final int DEFAULT_MAX_MESSAGE_IN_QUEUE = 100;
     public static final boolean DEFAULT_REQUEUE_ON_INFLIGHT_TIMEOUT = true;
+    public static final boolean DEFAULT_SLEEP_CLEARS_REGISTRATIONS = true;
     public static final int DEFAULT_MAX_TOPIC_LENGTH = 1024;
     public static final int DEFAULT_MAX_NETWORK_ADDRESS_ENTRIES = 1024;
     public static final int DEFAULT_MAX_WAIT = 10000;
@@ -55,6 +56,7 @@ public class MqttsnOptions {
     private boolean blockSendOnPreviousConfirmation = DEFAULT_BLOCK_SEND_ON_PREVIOUS_CONFIRMATION;
     private boolean threadHandoffFromTransport = DEFAULT_THREAD_HANDOFF_ENABLED;
     private boolean enableDiscovery = DEFAULT_DISCOVERY_ENABLED;
+    private boolean sleepClearsRegistrations = DEFAULT_SLEEP_CLEARS_REGISTRATIONS;
     private int handoffThreadCount = DEFAULT_HANDOFF_THREAD_COUNT;
     private int minFlushTime = DEFAULT_MIN_FLUSH_TIME;
     private int maxTopicsInRegistry = DEFAULT_MAX_TOPICS_IN_REGISTRY;
@@ -79,6 +81,11 @@ public class MqttsnOptions {
 
     public MqttsnOptions withMinFlushTime(int minFlushTime){
         this.minFlushTime = minFlushTime;
+        return this;
+    }
+
+    public MqttsnOptions withSleepClearsRegistrations(boolean sleepClearsRegistrations){
+        this.sleepClearsRegistrations = sleepClearsRegistrations;
         return this;
     }
 
@@ -259,5 +266,9 @@ public class MqttsnOptions {
 
     public int getMinFlushTime() {
         return minFlushTime;
+    }
+
+    public boolean isSleepClearsRegistrations() {
+        return sleepClearsRegistrations;
     }
 }

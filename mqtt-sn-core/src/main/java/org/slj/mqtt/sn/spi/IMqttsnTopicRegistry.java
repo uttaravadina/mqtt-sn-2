@@ -50,4 +50,6 @@ public interface IMqttsnTopicRegistry<T extends IMqttsnRuntimeRegistry> extends 
 
     String lookupPredefined(IMqttsnContext context, int topicAlias) throws MqttsnException;
 
+    void clear(IMqttsnContext context, boolean hardClear) throws MqttsnException;
+
 }

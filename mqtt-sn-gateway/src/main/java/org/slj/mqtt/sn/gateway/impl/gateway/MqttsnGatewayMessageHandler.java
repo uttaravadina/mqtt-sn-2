@@ -62,7 +62,7 @@ public class MqttsnGatewayMessageHandler
     protected void beforeHandle(IMqttsnContext context, IMqttsnMessage message) throws MqttsnException {
 
         try {
-            //see if the client has an active session
+            //see if the client has an active sessionx
             getSessionState(context);
         } catch(MqttsnInvalidSessionStateException e){
 
@@ -98,6 +98,15 @@ public class MqttsnGatewayMessageHandler
             }
         } catch(MqttsnInvalidSessionStateException e){
             //-- a disconnect will mean theres no session to update
+        }
+
+        if(messageOut != null && messageOut.isErrorMessage()){
+            //we need to remove any message that was marked inflight
+            if(messageIn.needsMsgId()){
+                if(registry.getMessageStateService().removeInflight(context, messageIn.getMsgId())){
+                    logger.log(Level.WARNING, "tidied up bad message that was marked inflight and yeilded error response");
+                }
+            }
         }
     }
 
@@ -158,8 +167,15 @@ public class MqttsnGatewayMessageHandler
             return super.handleDisconnect(context, initialDisconnect, receivedDisconnect);
         } else {
             IMqttsnSessionState state = getSessionState(context, false);
-            registry.getGatewaySessionService().disconnect(state, d.getDuration());
-            return super.handleDisconnect(context, initialDisconnect, receivedDisconnect);
+            //was disconnected already?
+
+            boolean needsResponse = initialDisconnect != null ||
+                    (state != null && !MqttsnUtils.in(state.getClientState(), MqttsnClientState.DISCONNECTED));
+            if(state != null && !MqttsnUtils.in(state.getClientState(), MqttsnClientState.DISCONNECTED)){
+                registry.getGatewaySessionService().disconnect(state, d.getDuration());
+            }
+            return needsResponse ?
+                        super.handleDisconnect(context, initialDisconnect, receivedDisconnect) : null;
         }
     }
 
@@ -259,7 +275,7 @@ public class MqttsnGatewayMessageHandler
             state = getSessionState(context);
         } catch(MqttsnInvalidSessionStateException e){
             //-- connectionless publish (m1)
-            if(publish.getQoS() >= 0)
+            if(publish.getQoS() != MqttsnConstants.QoSM1)
                 throw e;
         }
 
