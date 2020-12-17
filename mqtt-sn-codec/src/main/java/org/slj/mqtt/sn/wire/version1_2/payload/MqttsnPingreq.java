@@ -26,8 +26,9 @@ package org.slj.mqtt.sn.wire.version1_2.payload;
 
 import org.slj.mqtt.sn.MqttsnConstants;
 import org.slj.mqtt.sn.codec.MqttsnCodecException;
+import org.slj.mqtt.sn.spi.IMqttsnIdentificationPacket;
 
-public class MqttsnPingreq extends AbstractMqttsnMessage {
+public class MqttsnPingreq extends AbstractMqttsnMessage implements IMqttsnIdentificationPacket {
 
     protected String clientId;
 

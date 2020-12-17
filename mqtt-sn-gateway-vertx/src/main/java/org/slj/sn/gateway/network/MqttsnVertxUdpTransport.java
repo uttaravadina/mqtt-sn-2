@@ -84,22 +84,18 @@ public class MqttsnVertxUdpTransport
     }
 
     @Override
-    public void writeToTransport(IMqttsnContext context, ByteBuffer buffer) {
-        try {
-            NetworkAddress address = registry.getNetworkRegistry().getNetworkAddress(context);
-            if(address != null){
-                byte[] bb = drain(buffer);
-                Buffer buf = Buffer.buffer(bb);
-                socket.send(buf, address.getPort(), address.getHostAddress(), asyncResult -> {
-                    if(logger.isLoggable(Level.INFO)){
-                        logger.log(Level.INFO,
-                                String.format("sent [%s] bytes to [%s] -> [%s]", bb.length, context, MqttsnWireUtils.toBinary(bb)));
-                    }
-                });
-            }
-        } catch(NetworkRegistryException e){
-            logger.log(Level.SEVERE,
-                    String.format("network registry error"), e);
+    public void writeToTransport(INetworkContext context, ByteBuffer buffer) {
+
+        NetworkAddress address = context.getNetworkAddress();
+        if(address != null){
+            byte[] bb = drain(buffer);
+            Buffer buf = Buffer.buffer(bb);
+            socket.send(buf, address.getPort(), address.getHostAddress(), asyncResult -> {
+                if(logger.isLoggable(Level.INFO)){
+                    logger.log(Level.INFO,
+                            String.format("sent [%s] bytes to [%s] -> [%s]", bb.length, context, MqttsnWireUtils.toBinary(bb)));
+                }
+            });
         }
     }
 

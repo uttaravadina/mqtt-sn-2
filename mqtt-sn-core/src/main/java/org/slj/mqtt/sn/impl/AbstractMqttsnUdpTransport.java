@@ -25,6 +25,7 @@
 package org.slj.mqtt.sn.impl;
 
 import org.slj.mqtt.sn.model.IMqttsnContext;
+import org.slj.mqtt.sn.model.INetworkContext;
 import org.slj.mqtt.sn.net.MqttsnUdpOptions;
 import org.slj.mqtt.sn.spi.IMqttsnRuntimeRegistry;
 import org.slj.mqtt.sn.spi.MqttsnException;
@@ -53,5 +54,5 @@ public abstract class AbstractMqttsnUdpTransport<U extends IMqttsnRuntimeRegistr
 
     protected abstract void bind() throws Exception;
 
-    public abstract void writeToTransport(IMqttsnContext context, ByteBuffer buffer) throws MqttsnException ;
+    public abstract void writeToTransport(INetworkContext context, ByteBuffer buffer) throws MqttsnException ;
 }

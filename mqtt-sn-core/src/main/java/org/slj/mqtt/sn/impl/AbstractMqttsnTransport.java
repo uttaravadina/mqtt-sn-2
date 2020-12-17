@@ -31,6 +31,7 @@ import org.slj.mqtt.sn.spi.MqttsnException;
 import org.slj.mqtt.sn.spi.*;
 import org.slj.mqtt.sn.wire.MqttsnWireUtils;
 import org.slj.mqtt.sn.wire.version1_2.payload.MqttsnConnect;
+import org.slj.mqtt.sn.wire.version1_2.payload.MqttsnPingreq;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -102,37 +103,45 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
             logger.log(Level.INFO, String.format("receiving [%s] bytes for [%s] from transport on thread [%s](%s)", data.length, networkContext,
                     Thread.currentThread().getName(), Thread.currentThread().getId()));
             IMqttsnMessage message = getRegistry().getCodec().decode(data);
-            if(networkContext.getMqttsnContext() == null || message instanceof MqttsnConnect){
-                IMqttsnContext mqttsnContext = registry.getContextFactory().createInitialContext(networkContext, message);
-                if(mqttsnContext != null){
-                    networkContext.setMqttsnContext(mqttsnContext);
-                    registry.getNetworkRegistry().putContext(networkContext);
+
+            boolean authd = true;
+            //-- if we detect an inbound id packet, we should authorise the context every time (even if the impl just reuses existing auth)
+            if(message instanceof IMqttsnIdentificationPacket){
+                if(networkContext.getMqttsnContext() == null){
+                    authd = registry.getMessageHandler().authorizeContext(networkContext,
+                            ((IMqttsnIdentificationPacket)message).getClientId());
                 }
             }
-            registry.getMessageHandler().receiveMessage(networkContext.getMqttsnContext(), message);
-            notifyTrafficReceived(networkContext, data, message);
+
+            if(authd && networkContext.getMqttsnContext() != null){
+                registry.getMessageHandler().receiveMessage(networkContext.getMqttsnContext(), message);
+                notifyTrafficReceived(networkContext, data, message);
+            } else {
+                logger.log(Level.WARNING, "auth could not be established, send disconnect");
+                writeToTransportInternal(networkContext, registry.getMessageFactory().createDisconnect(), false);
+            }
         } catch(Throwable t){
             logger.log(Level.SEVERE, "error receiving message from transport", t);
         }
     }
 
     @Override
-    public void writeToTransport(IMqttsnContext context, IMqttsnMessage message) {
+    public void writeToTransport(INetworkContext context, IMqttsnMessage message) {
         if(registry.getOptions().getThreadHandoffFromTransport()){
             executorService.submit(
-                    () -> writeToTransportInternal(context, message));
+                    () -> writeToTransportInternal(context, message, true));
         } else {
-            writeToTransportInternal(context, message);
+            writeToTransportInternal(context, message, true);
         }
     }
 
-    protected void writeToTransportInternal(IMqttsnContext context, IMqttsnMessage message){
+    protected void writeToTransportInternal(INetworkContext context, IMqttsnMessage message, boolean notifyListeners){
         try {
             byte[] data = registry.getCodec().encode(message);
             logger.log(Level.INFO, String.format("[%s] writing [%s] to transport on thread [%s](%s)", context, message,
                     Thread.currentThread().getName(), Thread.currentThread().getId()));
             writeToTransport(context, ByteBuffer.wrap(data, 0 , data.length));
-            notifyTrafficSent(context.getNetworkContext(), data, message);
+            if(notifyListeners) notifyTrafficSent(context, data, message);
         } catch(Throwable e){
             logger.log(Level.SEVERE, String.format("[%s] transport layer errord sending buffer", context), e);
         }
@@ -152,7 +161,7 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
         }
     }
 
-    protected abstract void writeToTransport(IMqttsnContext context, ByteBuffer data) throws MqttsnException ;
+    protected abstract void writeToTransport(INetworkContext context, ByteBuffer data) throws MqttsnException ;
 
     protected static ByteBuffer wrap(byte[] arr){
         return wrap(arr, arr.length);

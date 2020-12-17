@@ -28,7 +28,6 @@ import org.slj.mqtt.sn.MqttsnConstants;
 import org.slj.mqtt.sn.codec.MqttsnCodecException;
 import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.INetworkContext;
-import org.slj.mqtt.sn.model.MqttsnContext;
 import org.slj.mqtt.sn.model.TopicInfo;
 import org.slj.mqtt.sn.spi.*;
 import org.slj.mqtt.sn.utils.MqttsnUtils;
@@ -38,6 +37,27 @@ import java.util.logging.Level;
 
 public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegistry>
         extends MqttsnService<U> implements IMqttsnMessageHandler {
+
+    public boolean authorizeContext(INetworkContext context, String clientId) {
+        try {
+            IMqttsnContext mqttsnContext = registry.getContextFactory().createInitialContext(context, clientId);
+            if(mqttsnContext != null){
+                context.setMqttsnContext(mqttsnContext);
+                registry.getNetworkRegistry().putContext(context);
+                return true;
+            }
+            logger.log(Level.WARNING, String.format("context factory did not provide secured context, refuse auth"));
+            return false;
+        }
+        catch(NetworkRegistryException e){
+            logger.log(Level.WARNING, String.format("error interacting with network registry, refuse auth"), e);
+            return false;
+        }
+        catch(MqttsnSecurityException e){
+            logger.log(Level.WARNING, String.format("security exception detected, refuse auth"), e);
+            return false;
+        }
+    }
 
     @Override
     public boolean validResponse(IMqttsnMessage message, Class<? extends IMqttsnMessage> cls) {
@@ -302,7 +322,7 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
 
         logger.log(Level.INFO, String.format("mqtt-sn handler [%s] sending outbound message [%s]",
                 context, response));
-        registry.getTransport().writeToTransport(context, response);
+        registry.getTransport().writeToTransport(context.getNetworkContext(), response);
     }
 
     protected IMqttsnMessage handleConnect(IMqttsnContext context, IMqttsnMessage connect) throws MqttsnException {

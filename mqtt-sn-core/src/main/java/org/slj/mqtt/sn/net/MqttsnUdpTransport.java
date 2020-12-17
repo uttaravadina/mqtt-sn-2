@@ -73,8 +73,11 @@ public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
                     NetworkAddress address = NetworkAddress.from(p.getPort(), p.getAddress().getHostAddress());
                     INetworkContext context = registry.getNetworkRegistry().getContext(address);
                     if(context == null){
-                        logger.log(Level.FINE, String.format("creating new [%s] context for [%s]", threadName, address));
-                        context = new NetworkContext(address, null);
+                        //-- if the network context does not exist in the registry, a new one is created by the factory -
+                        //- NB: this is NOT auth, this is simply creating a context to which we can respond, auth can
+                        //-- happen during the mqtt-sn context creation, at which point we can talk back to the device
+                        //-- with error packets and the like
+                        context = registry.getContextFactory().createInitialContext(address);
                     }
                     context.setReceivePort(localSocket.getLocalPort());
                     receiveFromTransport(context, wrap(buff, p.getLength()));
@@ -101,10 +104,10 @@ public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
     }
 
     @Override
-    public void writeToTransport(IMqttsnContext context, ByteBuffer buffer) throws MqttsnException {
+    public void writeToTransport(INetworkContext context, ByteBuffer buffer) throws MqttsnException {
         try {
             byte[] payload = drain(buffer);
-            NetworkAddress address = context.getNetworkContext().getNetworkAddress();
+            NetworkAddress address = context.getNetworkAddress();
             InetAddress inetAddress = InetAddress.getByName(address.getHostAddress());
             DatagramPacket packet = new DatagramPacket(payload, payload.length, inetAddress, address.getPort());
             socket.send(packet);

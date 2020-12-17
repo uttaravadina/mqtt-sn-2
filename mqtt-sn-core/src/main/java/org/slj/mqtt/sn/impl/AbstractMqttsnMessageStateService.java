@@ -146,7 +146,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                     String.format("sending message [%s] to [%s] via state service, marking inflight ? [%s]",
                             message, context, requiresResponse));
 
-            registry.getTransport().writeToTransport(context, message);
+            registry.getTransport().writeToTransport(context.getNetworkContext(), message);
 
             //-- the only publish that does not require an ack is QoS so send to app as delivered
             if(!requiresResponse && message instanceof MqttsnPublish){

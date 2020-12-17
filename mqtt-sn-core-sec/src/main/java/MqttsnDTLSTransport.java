@@ -57,11 +57,11 @@ public class MqttsnDTLSTransport extends MqttsnUdpTransport {
         dtslReceiverThread = createDatagramServer("mqttsn-dtls-receiver", options.getReceiveBuffer(), dtlsSocket);
     }
 
-    public void writeToTransport(IMqttsnContext context, ByteBuffer buffer) throws MqttsnException {
+    public void writeToTransport(INetworkContext context, ByteBuffer buffer) throws MqttsnException {
 
         //if we receive thru the secure port, we should write thru the secure port
-        INetworkContext networkContext = registry.getNetworkRegistry().getContext(context);
-        if(networkContext.getReceivePort() == options.getSecurePort()){
+//        INetworkContext networkContext = registry.getNetworkRegistry().getContext(context);
+        if(context.getReceivePort() == options.getSecurePort()){
 
             //-- use the DTLS version...
 

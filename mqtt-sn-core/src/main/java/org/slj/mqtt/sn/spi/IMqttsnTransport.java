@@ -33,7 +33,7 @@ public interface IMqttsnTransport {
 
     void receiveFromTransport(INetworkContext context, ByteBuffer buffer);
 
-    void writeToTransport(IMqttsnContext context, IMqttsnMessage message) throws MqttsnException ;
+    void writeToTransport(INetworkContext context, IMqttsnMessage message) throws MqttsnException ;
 
     void broadcast(IMqttsnMessage message) throws MqttsnException ;
 

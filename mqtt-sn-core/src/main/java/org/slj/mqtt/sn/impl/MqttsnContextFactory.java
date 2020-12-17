@@ -3,6 +3,8 @@ package org.slj.mqtt.sn.impl;
 import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.INetworkContext;
 import org.slj.mqtt.sn.model.MqttsnContext;
+import org.slj.mqtt.sn.net.NetworkAddress;
+import org.slj.mqtt.sn.net.NetworkContext;
 import org.slj.mqtt.sn.spi.*;
 import org.slj.mqtt.sn.wire.version1_2.payload.MqttsnConnect;
 
@@ -15,15 +17,20 @@ public class MqttsnContextFactory<T extends IMqttsnRuntimeRegistry>
     protected static Logger logger = Logger.getLogger(MqttsnContextFactory.class.getName());
 
     @Override
-    public IMqttsnContext createInitialContext(INetworkContext networkContext, IMqttsnMessage message) throws MqttsnException {
-        logger.log(Level.INFO,
-                String.format("attempting to identify user and establish mqtt-sn context from [%s]", message));
-        if(message instanceof MqttsnConnect){
-            MqttsnContext context = new MqttsnContext(networkContext, ((MqttsnConnect)message).getClientId());
-            networkContext.setMqttsnContext(context);
-            return context;
-        }
-        throw new MqttsnException("unable to create context message from non-connect packet");
+    public INetworkContext createInitialContext(NetworkAddress address) throws MqttsnException {
 
+        logger.log(Level.INFO,
+                String.format("not network context exists for address, create new one for [%s]", address));
+        return new NetworkContext(address, null);
+    }
+
+    @Override
+    public IMqttsnContext createInitialContext(INetworkContext networkContext, String clientId) throws MqttsnSecurityException {
+
+        logger.log(Level.INFO,
+                String.format("no mqttsn context exists for network context & client id, create new one [%s]", clientId));
+        MqttsnContext context = new MqttsnContext(networkContext, clientId);
+        networkContext.setMqttsnContext(context);
+        return context;
     }
 }
