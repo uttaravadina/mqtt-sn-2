@@ -52,6 +52,10 @@ public class MqttsnMessageQueueProcessor<T extends IMqttsnRuntimeRegistry>
         //-- if the queue is empty, then something will happen to retrigger this process, ie. message in or out
         //-- so safe to remove
         if(registry.getMessageQueue().size(context) == 0){
+            if(stateCheckService != null){
+                //-- this checks on the state of any session and if its AWAKE will lead to a PINGRESP being sent
+                stateCheckService.queueEmpty(context);
+            }
             return RESULT.REMOVE_PROCESS;
         }
 
@@ -87,11 +91,12 @@ public class MqttsnMessageQueueProcessor<T extends IMqttsnRuntimeRegistry>
                 } catch(MqttsnExpectationFailedException e){
                     logger.log(Level.WARNING, String.format("unable to send message, try again later"), e);
                 }
+                //-- with a register we should come back when the registration is complete and attempt delivery
+                return RESULT.BACKOFF_PROCESS;
             } else {
                 //-- only deque when we have confirmed we can deliver
                 queuedMessage = registry.getMessageQueue().pop(context);
                 if (queuedMessage != null) {
-                    poppedMessage = true;
                     queuedMessage.incrementRetry();
                     //-- let the reaper check on delivery
                     try {
@@ -101,22 +106,17 @@ public class MqttsnMessageQueueProcessor<T extends IMqttsnRuntimeRegistry>
                                 registry.getMessageStateService().waitForCompletion(context, token);
                             }
                         }
+
                     } catch (MqttsnException e) {
                         logger.log(Level.WARNING, String.format("unable to send message, requeue and backoff"), e);
                         registry.getMessageQueue().offer(context, queuedMessage);
                     }
                 }
-            }
-        }
 
-        //-- only removed this following 1 attempt AFTER we sent
-        if(registry.getMessageQueue().size(context) == 0 && !poppedMessage) {
-            if(stateCheckService != null){
-                stateCheckService.queueEmpty(context);
+                return RESULT.BACKOFF_PROCESS;
             }
-            return RESULT.REMOVE_PROCESS;
         } else {
-            return RESULT.REPROCESS;
+            return RESULT.REMOVE_PROCESS;
         }
     }
 }

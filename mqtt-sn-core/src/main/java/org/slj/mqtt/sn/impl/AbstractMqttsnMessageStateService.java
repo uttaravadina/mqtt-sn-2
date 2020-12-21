@@ -112,7 +112,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
     public MqttsnWaitToken sendMessage(IMqttsnContext context, TopicInfo info, QueuedPublishMessage queuedPublishMessage) throws MqttsnException {
 
         IMqttsnMessage publish = registry.getMessageFactory().createPublish(queuedPublishMessage.getGrantedQoS(),
-                queuedPublishMessage.getRetryCount() > 1, false, info.getType(), info.getTopicId(),
+                queuedPublishMessage.getRetryCount() > 1, false, info.getType(),  info.getTopicId(),
                 registry.getMessageRegistry().get(queuedPublishMessage.getMessageId()));
         return sendMessageInternal(context, publish, queuedPublishMessage);
     }
@@ -122,8 +122,8 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         int count = countInflight(context);
         if(countInflight(context) > 0){
             logger.log(Level.WARNING,
-                    String.format("unable to send [%s],[%s] to [%s], max inflight reached [%s]",
-                            message, queuedPublishMessage, context, count));
+                    String.format("unable to send [%s],[%s] to [%s], max inflight reached [%s] -> [%s]",
+                            message, queuedPublishMessage, context, count, Objects.toString(getInflightMessages(context))));
             throw new MqttsnExpectationFailedException("fail-fast mode on max inflight max - cap hit");
         }
 
@@ -165,6 +165,11 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
 
     @Override
     public Optional<IMqttsnMessage> waitForCompletion(IMqttsnContext context, final MqttsnWaitToken token) throws MqttsnExpectationFailedException {
+        return waitForCompletion(context, token, registry.getOptions().getMaxWait());
+    }
+
+    @Override
+    public Optional<IMqttsnMessage> waitForCompletion(IMqttsnContext context, final MqttsnWaitToken token, int customWaitTime) throws MqttsnExpectationFailedException {
         try {
             IMqttsnMessage message = token.getMessage();
             if(token.isComplete()){
@@ -173,7 +178,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
             IMqttsnMessage response = null;
 
             long start = System.currentTimeMillis();
-            long timeToWait = registry.getOptions().getMaxWait();
+            long timeToWait = Math.max(customWaitTime, 0);
             synchronized(token){
                 //-- code against spurious wake up
                 while(!token.isComplete() &&
@@ -282,7 +287,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                     int count = countInflight(context);
                     if(count >= registry.getOptions().getMaxMessagesInflight()){
                         logger.log(Level.WARNING, String.format("have [%s] existing message(s) inflight & new publish QoS2, replacing inflights!", count));
-                        clearInflight(context, 0);
+                        clearInflightInternal(context, 0);
                     }
                     //-- Qos 2 needs further confirmation before being sent to application
                     markInflight(context, message, null);
@@ -360,7 +365,13 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         return startAt;
     }
 
-    protected void clearInflight(IMqttsnContext context, long evictionTime) throws MqttsnException {
+    public void clearInflight(IMqttsnContext context) throws MqttsnException {
+        clearInflightInternal(context, 0);
+        clear(context);
+    }
+
+    protected void clearInflightInternal(IMqttsnContext context, long evictionTime) throws MqttsnException {
+        logger.log(evictionTime == 0 ? Level.INFO : Level.FINE, String.format("clearing all inflight messages for context [%s], forced = [%s]", context, evictionTime == 0));
         Map<Integer, InflightMessage> messages = getInflightMessages(context);
         if(messages != null && !messages.isEmpty()){
             Iterator<Integer> messageItr = messages.keySet().iterator();
@@ -442,6 +453,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
 
     @Override
     public boolean removeInflight(IMqttsnContext context, int msgId) throws MqttsnException {
+        logger.log(Level.INFO, String.format("removing inflight message by id [%s]", msgId));
         return removeInflightMessage(context, msgId) != null;
     }
 

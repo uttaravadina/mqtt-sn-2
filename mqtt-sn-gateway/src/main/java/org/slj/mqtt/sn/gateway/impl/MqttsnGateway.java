@@ -101,5 +101,8 @@ public class MqttsnGateway extends AbstractMqttsnRuntime {
         callShutdown(runtime.getMessageStateService());
     }
 
-
+    @Override
+    public boolean disconnectReceived(IMqttsnContext context) {
+        return true;
+    }
 }

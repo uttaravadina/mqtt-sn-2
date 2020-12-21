@@ -148,10 +148,6 @@ public abstract class AbstractMqttsnRuntime {
         sentListeners.stream().forEach(p -> p.sent(context, messageId, topicName, QoS, payload));
     }
 
-    public void disconnectReceived(IMqttsnContext context){
-        logger.log(Level.INFO, String.format("unsolicited disconnected received by application"));
-    }
-
     public void registerReceivedListener(IMqttsnPublishReceivedListener listener) {
         if(listener != null && !receivedListeners.contains(listener))
             receivedListeners.add(listener);
@@ -161,4 +157,6 @@ public abstract class AbstractMqttsnRuntime {
         if(listener != null && !sentListeners.contains(listener))
             sentListeners.add(listener);
     }
+
+    public abstract boolean disconnectReceived(IMqttsnContext context);
 }

@@ -178,9 +178,16 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
             logger.log(Level.INFO, String.format("mqtt-sn handler [%s] handling inbound message [%s]",
                     context, message));
 
+            boolean errord = false;
             if(registry.getMessageStateService() != null){
-                originatingMessage =
-                        registry.getMessageStateService().notifyMessageReceived(context, message);
+                try {
+                    originatingMessage =
+                            registry.getMessageStateService().notifyMessageReceived(context, message);
+                } catch(MqttsnException e){
+                    errord = true;
+                    logger.log(Level.WARNING, String.format("mqtt-sn state service errord, allow message lifecycle to handle [%s] -> [%s]",
+                            context, e.getMessage()));
+                }
             }
 
             IMqttsnMessage response = null;
@@ -193,7 +200,12 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
                     handleConnack(context, originatingMessage, message);
                     break;
                 case MqttsnConstants.PUBLISH:
-                    response = handlePublish(context, message);
+                    if(errord){
+                        response = getRegistry().getMessageFactory().createPuback(0,
+                                MqttsnConstants.RETURN_CODE_SERVER_UNAVAILABLE);
+                    } else {
+                        response = handlePublish(context, message);
+                    }
                     break;
                 case MqttsnConstants.PUBREC:
                     response = handlePubrec(context, message);
@@ -210,7 +222,12 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
                     handlePubcomp(context, originatingMessage, message);
                     break;
                 case MqttsnConstants.SUBSCRIBE:
-                    response = handleSubscribe(context, message);
+                    if(errord){
+                        response = getRegistry().getMessageFactory().createSuback(0, 0,
+                                MqttsnConstants.RETURN_CODE_SERVER_UNAVAILABLE);
+                    } else {
+                        response = handleSubscribe(context, message);
+                    }
                     break;
                 case MqttsnConstants.UNSUBSCRIBE:
                     response = handleUnsubscribe(context, message);
@@ -224,7 +241,12 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
                     handleSuback(context, originatingMessage, message);
                     break;
                 case MqttsnConstants.REGISTER:
-                    response = handleRegister(context, message);
+                    if(errord){
+                        response = getRegistry().getMessageFactory().createRegack(0,
+                                MqttsnConstants.RETURN_CODE_SERVER_UNAVAILABLE);
+                    } else {
+                        response = handleRegister(context, message);
+                    }
                     break;
                 case MqttsnConstants.REGACK:
                     validateOriginatingMessage(context, originatingMessage, message);
@@ -279,7 +301,15 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
                 default:
                     throw new MqttsnException("unable to handle unknown message type " + msgType);
             }
+            //-- if the state service threw a wobbler but for some reason this didnt lead to an error message
+            //-- we should just disconnect the device
+            if(errord && !response.isErrorMessage()){
+                logger.log(Level.WARNING, String.format("mqtt-sn state service errord, message handler did not produce an error, so overrule and disoconnect [%s] -> [%s]",
+                        context, message));
+                response = registry.getMessageFactory().createDisconnect();
+            }
 
+            //-- this tidies up inflight if there are errors
             afterHandle(context, message, response);
 
             if (response != null) {
@@ -303,7 +333,17 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
 
     protected abstract void beforeHandle(IMqttsnContext context, IMqttsnMessage message) throws MqttsnException;
 
-    protected abstract void afterHandle(IMqttsnContext context, IMqttsnMessage message, IMqttsnMessage response) throws MqttsnException;
+    protected void afterHandle(IMqttsnContext context, IMqttsnMessage message, IMqttsnMessage response) throws MqttsnException {
+
+        if(response != null && response.isErrorMessage()){
+            //we need to remove any message that was marked inflight
+            if(message.needsMsgId()){
+                if(registry.getMessageStateService().removeInflight(context, message.getMsgId())){
+                    logger.log(Level.WARNING, "tidied up bad message that was marked inflight and yeilded error response");
+                }
+            }
+        }
+    }
 
     protected void afterResponse(IMqttsnContext context, IMqttsnMessage message, IMqttsnMessage response) throws MqttsnException {
     }
@@ -344,10 +384,11 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
             logger.log(Level.INFO, "disconnect received in response to my disconnect, dont send another!");
             return null;
         } else {
-            //-- unsolicited disconnect notify to the application
-            registry.getRuntime().disconnectReceived(context);
+            if(registry.getRuntime().disconnectReceived(context)){
+                return registry.getMessageFactory().createDisconnect();
+            }
+            return null;
         }
-        return registry.getMessageFactory().createDisconnect();
     }
 
     protected IMqttsnMessage handlePingreq(IMqttsnContext context, IMqttsnMessage message) throws MqttsnException, MqttsnCodecException {
@@ -368,13 +409,19 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
         return registry.getMessageFactory().createUnsuback();
     }
 
-    protected void handleSuback(IMqttsnContext context, IMqttsnMessage subscribe, IMqttsnMessage message) throws MqttsnException {
+    protected void handleSuback(IMqttsnContext context, IMqttsnMessage initial, IMqttsnMessage message) throws MqttsnException {
         MqttsnSuback suback = (MqttsnSuback) message;
-        String topicPath = ((MqttsnSubscribe)subscribe).getTopicName();
-        if(suback.getTopicType() == MqttsnConstants.TOPIC_NORMAL){
+        MqttsnSubscribe subscribe = (MqttsnSubscribe) initial;
+        String topicPath = null;
+        if(subscribe.getTopicType() == MqttsnConstants.TOPIC_NORMAL){
+            topicPath = subscribe.getTopicName();
             registry.getTopicRegistry().register(context, topicPath, suback.getTopicId());
+        } else {
+            topicPath = registry.getTopicRegistry().topicPath(context,
+                    registry.getTopicRegistry().normalize((byte) subscribe.getTopicType(), subscribe.getTopicData(), false), false);
         }
-        registry.getSubscriptionRegistry().subscribe(context, topicPath,  suback.getQoS());
+
+        registry.getSubscriptionRegistry().subscribe(context, topicPath, suback.getQoS());
     }
 
     protected void handleUnsuback(IMqttsnContext context, IMqttsnMessage unsubscribe, IMqttsnMessage unsuback) throws MqttsnException {

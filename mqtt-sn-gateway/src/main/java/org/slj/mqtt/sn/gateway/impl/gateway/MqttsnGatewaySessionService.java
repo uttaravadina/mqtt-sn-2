@@ -156,8 +156,8 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
                             "invalid topic format");
                 }
                 if(!TopicPath.isWild(topicPath)){
-                    info = registry.getTopicRegistry().lookup(state.getContext(), topicPath);
-                    if(info == null){
+                    TopicInfo lookupInfo = registry.getTopicRegistry().lookup(state.getContext(), topicPath);
+                    if(lookupInfo == null || info.getType() == MqttsnConstants.TOPIC_TYPE.NORMAL){
                         info = registry.getTopicRegistry().register(state.getContext(), topicPath);
                     }
                 } else {

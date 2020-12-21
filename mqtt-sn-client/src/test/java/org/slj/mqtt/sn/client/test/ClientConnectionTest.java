@@ -115,7 +115,7 @@ public class ClientConnectionTest {
             assertClientSessionState(client, MqttsnClientState.CONNECTED);
             client.sleep(CONNECT_TIMEOUT);
             assertClientSessionState(client, MqttsnClientState.ASLEEP);
-            client.wake();
+            client.wake(15000);
             assertClientSessionState(client, MqttsnClientState.ASLEEP);
         }
     }

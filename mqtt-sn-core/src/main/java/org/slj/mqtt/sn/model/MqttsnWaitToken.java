@@ -26,6 +26,8 @@ package org.slj.mqtt.sn.model;
 
 import org.slj.mqtt.sn.spi.IMqttsnMessage;
 
+import java.util.UUID;
+
 public class MqttsnWaitToken {
 
     private volatile boolean error = false;

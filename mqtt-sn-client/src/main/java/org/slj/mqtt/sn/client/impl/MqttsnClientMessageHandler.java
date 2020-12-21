@@ -48,18 +48,6 @@ public class MqttsnClientMessageHandler
     }
 
     @Override
-    protected void handleAdvertise(IMqttsnContext context, IMqttsnMessage message) throws MqttsnException {
-
-        MqttsnAdvertise advertise  = (MqttsnAdvertise) message;
-        logger.log(Level.INFO, "client detected advertise message.. " + message);
-//        registry.getNetworkRegistry().putContext();
-    }
-
-    @Override
     protected void beforeHandle(IMqttsnContext context, IMqttsnMessage message) throws MqttsnException {
-    }
-
-    @Override
-    protected void afterHandle(IMqttsnContext context, IMqttsnMessage message, IMqttsnMessage response) throws MqttsnException {
     }
 }

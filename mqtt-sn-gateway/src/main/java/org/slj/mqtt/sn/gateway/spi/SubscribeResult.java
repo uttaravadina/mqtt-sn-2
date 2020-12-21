@@ -59,6 +59,17 @@ public class SubscribeResult extends Result {
         return grantedQoS;
     }
 
+    @Override
+    public String toString() {
+        return "SubscribeResult{" +
+                "status=" + status +
+                ", message='" + message + '\'' +
+                ", returnCode=" + returnCode +
+                ", topicInfo=" + topicInfo +
+                ", grantedQoS=" + grantedQoS +
+                '}';
+    }
+
     public void setGrantedQoS(int grantedQoS) {
         this.grantedQoS = grantedQoS;
     }

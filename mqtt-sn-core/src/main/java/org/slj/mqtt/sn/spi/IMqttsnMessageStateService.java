@@ -69,6 +69,19 @@ public interface IMqttsnMessageStateService<T extends IMqttsnRuntimeRegistry> ex
      */
     Optional<IMqttsnMessage> waitForCompletion(IMqttsnContext context, MqttsnWaitToken token) throws MqttsnExpectationFailedException;
 
+    /**
+     * Join the message sent in waiting for the subsequent confirmation if it needs one
+     * @param context - The context to whom you are speaking
+     * @param customWaitTime - a custom time to wait for the token to complete
+     * @return An optional which will contain either the confirmation message associated with the
+     * message supplied OR optional NULL where the message does not require a reply
+     * @throws MqttsnExpectationFailedException - When no confirmation was recieved in the time period
+     * specified by the runtime options
+     */
+    Optional<IMqttsnMessage> waitForCompletion(IMqttsnContext context, MqttsnWaitToken token, int customWaitTime) throws MqttsnExpectationFailedException;
+
+    void clearInflight(IMqttsnContext context) throws MqttsnException ;
+
     boolean removeInflight(IMqttsnContext context, int msgId) throws MqttsnException ;
 
     boolean canSend(IMqttsnContext context) throws MqttsnException ;

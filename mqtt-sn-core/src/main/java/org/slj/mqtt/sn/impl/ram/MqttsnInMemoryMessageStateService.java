@@ -55,7 +55,7 @@ public class MqttsnInMemoryMessageStateService <T extends IMqttsnRuntimeRegistry
             while (itr.hasNext()) {
                 try {
                     IMqttsnContext context = itr.next();
-                    clearInflight(context, System.currentTimeMillis());
+                    clearInflightInternal(context, System.currentTimeMillis());
                 } catch(MqttsnException e){
                     logger.log(Level.WARNING, "error occurred during inflight eviction run;", e);
                 }

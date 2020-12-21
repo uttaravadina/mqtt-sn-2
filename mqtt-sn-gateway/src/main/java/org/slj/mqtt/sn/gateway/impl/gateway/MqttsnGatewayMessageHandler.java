@@ -91,6 +91,8 @@ public class MqttsnGatewayMessageHandler
     @Override
     protected void afterHandle(IMqttsnContext context, IMqttsnMessage messageIn, IMqttsnMessage messageOut) throws MqttsnException {
 
+        super.afterHandle(context, messageIn, messageOut);
+
         try {
             IMqttsnSessionState sessionState = getSessionState(context);
             if(sessionState != null){
@@ -98,15 +100,6 @@ public class MqttsnGatewayMessageHandler
             }
         } catch(MqttsnInvalidSessionStateException e){
             //-- a disconnect will mean theres no session to update
-        }
-
-        if(messageOut != null && messageOut.isErrorMessage()){
-            //we need to remove any message that was marked inflight
-            if(messageIn.needsMsgId()){
-                if(registry.getMessageStateService().removeInflight(context, messageIn.getMsgId())){
-                    logger.log(Level.WARNING, "tidied up bad message that was marked inflight and yeilded error response");
-                }
-            }
         }
     }
 
@@ -219,13 +212,20 @@ public class MqttsnGatewayMessageHandler
         }
 
         IMqttsnSessionState state = getSessionState(context);
-        TopicInfo info = registry.getTopicRegistry().normalize((byte) subscribe.getTopicType(), subscribe.getTopicData(), true);
+        TopicInfo info = registry.getTopicRegistry().normalize((byte) subscribe.getTopicType(), subscribe.getTopicData(),
+                subscribe.getTopicType() == 0);
+
+
         SubscribeResult result = registry.getGatewaySessionService().subscribe(state, info, subscribe.getQoS());
+        logger.log(Level.INFO, "subscribe message yeilded info " + info + " and result " + result);
         processSessionResult(result);
         if(result.isError()){
             return registry.getMessageFactory().createSuback(0, 0, result.getReturnCode());
         } else {
-            return registry.getMessageFactory().createSuback(result.getGrantedQoS(), result.getTopicInfo().getTopicId(), result.getReturnCode());
+            //-- this is a flaw in the current spec, you should be able to send back the topicIdType in the response
+            IMqttsnMessage suback = registry.getMessageFactory().createSuback(result.getGrantedQoS(), result.getTopicInfo().getTopicId(), result.getReturnCode());
+
+            return suback;
         }
     }
 

@@ -81,7 +81,6 @@ public class MqttsnSuback extends AbstractMqttsnMessageWithFlagsField {
     public String toString() {
         final StringBuilder sb = new StringBuilder("MqttsnSuback{");
         sb.append("topicId=").append(topicId);
-        sb.append(", topicIdType=").append(topicType);
         sb.append(", msgId=").append(msgId);
         sb.append(", returnCode=").append(returnCode);
         sb.append('}');
