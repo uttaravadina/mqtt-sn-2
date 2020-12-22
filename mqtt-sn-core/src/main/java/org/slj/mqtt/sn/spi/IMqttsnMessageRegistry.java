@@ -5,6 +5,8 @@ import java.util.UUID;
 
 public interface IMqttsnMessageRegistry <T extends IMqttsnRuntimeRegistry> extends IMqttsnRegistry<T>{
 
+    void tidy() throws MqttsnException ;
+
     UUID add(byte[] data, boolean removeAfterRead) throws MqttsnException ;
 
     UUID add(byte[] data, Date expires) throws MqttsnException;

@@ -7,7 +7,7 @@ public class RequeueableInflightMessage extends InflightMessage {
     QueuedPublishMessage queuedPublishMessage;
 
     public RequeueableInflightMessage(QueuedPublishMessage queuedPublishMessage, IMqttsnMessage message, MqttsnWaitToken token) {
-        super(message, token);
+        super(message, DIRECTION.SENDING, token);
         this.queuedPublishMessage = queuedPublishMessage;
     }
 

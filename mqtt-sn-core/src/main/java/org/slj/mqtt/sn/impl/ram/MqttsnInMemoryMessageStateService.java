@@ -75,15 +75,9 @@ public class MqttsnInMemoryMessageStateService <T extends IMqttsnRuntimeRegistry
     }
 
     @Override
-    protected InflightMessage removeInflightMessage(IMqttsnContext context, Integer messageId) throws MqttsnException {
-        InflightMessage message = getInflightMessage(context, messageId);
-        if(message != null){
-            Map<Integer, InflightMessage> map = getInflightMessages(context);
-            synchronized (map){
-                getInflightMessages(context).remove(messageId);
-            }
-        }
-        return message;
+    public InflightMessage removeInflight(IMqttsnContext context, int msgId) throws MqttsnException {
+        Map<Integer, InflightMessage> map = getInflightMessages(context);
+        return map.remove(msgId);
     }
 
     @Override
@@ -94,12 +88,18 @@ public class MqttsnInMemoryMessageStateService <T extends IMqttsnRuntimeRegistry
         }
     }
 
+    @Override
     protected InflightMessage getInflightMessage(IMqttsnContext context, Integer messageId) throws MqttsnException {
         return getInflightMessages(context).get(messageId);
     }
 
     @Override
-    protected Map<Integer, InflightMessage> getInflightMessages(IMqttsnContext context) throws MqttsnException {
+    protected boolean inflightExists(IMqttsnContext context, Integer messageId) throws MqttsnException {
+        return getInflightMessages(context).containsKey(messageId);
+    }
+
+    @Override
+    protected Map<Integer, InflightMessage> getInflightMessages(IMqttsnContext context) {
         Map<Integer, InflightMessage> map = inflightMessages.get(context);
         if(map == null){
             synchronized (this){
@@ -109,12 +109,9 @@ public class MqttsnInMemoryMessageStateService <T extends IMqttsnRuntimeRegistry
                 }
             }
         }
-        logger.log(Level.FINE, String.format("inflight for [%s] is [%s] -> [%s]", context, Objects.toString(map), System.identityHashCode(map)));
+        if(logger.isLoggable(Level.FINE)){
+            logger.log(Level.FINE, String.format("inflight for [%s] is [%s]", context, Objects.toString(map)));
+        }
         return map;
-    }
-
-    @Override
-    protected boolean inflightExists(IMqttsnContext context, Integer messageId) throws MqttsnException {
-        return getInflightMessages(context).containsKey(messageId);
     }
 }

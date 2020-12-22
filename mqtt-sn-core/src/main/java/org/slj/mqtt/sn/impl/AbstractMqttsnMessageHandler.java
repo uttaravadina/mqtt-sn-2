@@ -28,6 +28,7 @@ import org.slj.mqtt.sn.MqttsnConstants;
 import org.slj.mqtt.sn.codec.MqttsnCodecException;
 import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.INetworkContext;
+import org.slj.mqtt.sn.model.InflightMessage;
 import org.slj.mqtt.sn.model.TopicInfo;
 import org.slj.mqtt.sn.spi.*;
 import org.slj.mqtt.sn.utils.MqttsnUtils;
@@ -112,13 +113,13 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
                 MqttsnPublish publish = (MqttsnPublish) message;
                 return publish.getQoS() <= 0;
             case MqttsnConstants.CONNACK:
-            case MqttsnConstants.PUBACK:
+            case MqttsnConstants.PUBACK:    //we delete QoS 1 sent PUBLISH on receipt of PUBACK
+            case MqttsnConstants.PUBREL:    //we delete QoS 2 sent PUBLISH on receipt of PUBREL
             case MqttsnConstants.UNSUBACK:
             case MqttsnConstants.SUBACK:
             case MqttsnConstants.ADVERTISE:
             case MqttsnConstants.REGACK:
-            case MqttsnConstants.PUBCOMP:
-            case MqttsnConstants.PUBREL:
+            case MqttsnConstants.PUBCOMP:   //we delete QoS 2 received PUBLISH on receipt of PUBCOMP
             case MqttsnConstants.PINGRESP:
             case MqttsnConstants.DISCONNECT:
             case MqttsnConstants.ENCAPSMSG:
@@ -142,6 +143,27 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
             case MqttsnConstants.CONNECT:
             case MqttsnConstants.PUBREC:
             case MqttsnConstants.PUBREL:
+            case MqttsnConstants.SUBSCRIBE:
+            case MqttsnConstants.UNSUBSCRIBE:
+            case MqttsnConstants.REGISTER:
+            case MqttsnConstants.PINGREQ:
+            case MqttsnConstants.DISCONNECT:
+            case MqttsnConstants.SEARCHGW:
+            case MqttsnConstants.WILLMSGREQ:
+            case MqttsnConstants.WILLMSGUPD:
+            case MqttsnConstants.WILLTOPICREQ:
+            case MqttsnConstants.WILLTOPICUPD:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    @Override
+    public boolean isPartOfOriginatingMessage(IMqttsnMessage message) {
+        switch(message.getMessageType()){
+            case MqttsnConstants.PUBLISH:
+            case MqttsnConstants.CONNECT:
             case MqttsnConstants.SUBSCRIBE:
             case MqttsnConstants.UNSUBSCRIBE:
             case MqttsnConstants.REGISTER:
@@ -338,7 +360,7 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
         if(response != null && response.isErrorMessage()){
             //we need to remove any message that was marked inflight
             if(message.needsMsgId()){
-                if(registry.getMessageStateService().removeInflight(context, message.getMsgId())){
+                if(registry.getMessageStateService().removeInflight(context, message.getMsgId()) != null){
                     logger.log(Level.WARNING, "tidied up bad message that was marked inflight and yeilded error response");
                 }
             }

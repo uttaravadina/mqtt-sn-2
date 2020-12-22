@@ -24,7 +24,6 @@
 
 package org.slj.mqtt.sn.client.impl;
 
-import org.slj.mqtt.sn.client.spi.IMqttsnClientQueueService;
 import org.slj.mqtt.sn.client.spi.IMqttsnClientRuntimeRegistry;
 import org.slj.mqtt.sn.impl.AbstractMqttsnRuntimeRegistry;
 import org.slj.mqtt.sn.impl.MqttsnContextFactory;
@@ -36,15 +35,12 @@ import org.slj.mqtt.sn.spi.MqttsnRuntimeException;
 
 public class MqttsnClientRuntimeRegistry extends AbstractMqttsnRuntimeRegistry implements IMqttsnClientRuntimeRegistry {
 
-    protected IMqttsnClientQueueService queueService;
-
     public MqttsnClientRuntimeRegistry(MqttsnOptions options){
         super(options);
     }
 
     public static MqttsnClientRuntimeRegistry defaultConfiguration(MqttsnOptions options){
         MqttsnClientRuntimeRegistry registry = (MqttsnClientRuntimeRegistry) new MqttsnClientRuntimeRegistry(options).
-                withClientQueueService(new MqttsnClientQueueService()).
                 withContextFactory(new MqttsnContextFactory()).
                 withMessageHandler(new MqttsnClientMessageHandler()).
                 withMessageRegistry(new MqttsnInMemoryMessageRegistry()).
@@ -55,20 +51,5 @@ public class MqttsnClientRuntimeRegistry extends AbstractMqttsnRuntimeRegistry i
                 withQueueProcessor(new MqttsnMessageQueueProcessor(true)).
                 withMessageStateService(new MqttsnInMemoryMessageStateService(true));
         return registry;
-    }
-
-    public MqttsnClientRuntimeRegistry withClientQueueService(IMqttsnClientQueueService queueService){
-        this.queueService = queueService;
-        return this;
-    }
-
-    public IMqttsnClientQueueService getClientQueueService() {
-        return queueService;
-    }
-
-    @Override
-    protected void validateOnStartup() throws MqttsnRuntimeException {
-        super.validateOnStartup();
-        if(queueService == null) throw new MqttsnRuntimeException("message queue service must be bound for valid runtime");
     }
 }

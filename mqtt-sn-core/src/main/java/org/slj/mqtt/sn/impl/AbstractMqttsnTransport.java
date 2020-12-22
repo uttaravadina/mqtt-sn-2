@@ -61,6 +61,7 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
                         public Thread newThread(Runnable r) {
                             Thread t = new Thread(tg, r, "mqtt-sn-handoff-thread-" + ++count);
                             t.setPriority(Thread.MIN_PRIORITY + 1);
+                            t.setDaemon(true);
                             return t;
                         }
                     });
@@ -100,7 +101,7 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
     protected void receiveFromTransportInternal(INetworkContext networkContext, ByteBuffer buffer) {
         try {
             byte[] data = drain(buffer);
-            logger.log(Level.INFO, String.format("receiving [%s] bytes for [%s] from transport on thread [%s](%s)", data.length, networkContext,
+            logger.log(Level.FINE, String.format("receiving [%s] bytes for [%s] from transport on thread [%s](%s)", data.length, networkContext,
                     Thread.currentThread().getName(), Thread.currentThread().getId()));
             IMqttsnMessage message = getRegistry().getCodec().decode(data);
 
@@ -138,7 +139,7 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
     protected void writeToTransportInternal(INetworkContext context, IMqttsnMessage message, boolean notifyListeners){
         try {
             byte[] data = registry.getCodec().encode(message);
-            logger.log(Level.INFO, String.format("[%s] writing [%s] to transport on thread [%s](%s)", context, message,
+            logger.log(Level.FINE, String.format("[%s] writing [%s] to transport on thread [%s](%s)", context, message,
                     Thread.currentThread().getName(), Thread.currentThread().getId()));
             writeToTransport(context, ByteBuffer.wrap(data, 0 , data.length));
             if(notifyListeners) notifyTrafficSent(context, data, message);

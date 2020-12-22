@@ -41,4 +41,6 @@ public interface IMqttsnMessageHandler {
 
     boolean isTerminalMessage(IMqttsnMessage message);
 
+    boolean isPartOfOriginatingMessage(IMqttsnMessage message);
+
 }

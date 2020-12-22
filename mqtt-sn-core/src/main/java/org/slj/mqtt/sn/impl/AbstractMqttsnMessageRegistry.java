@@ -41,6 +41,8 @@ public abstract class AbstractMqttsnMessageRegistry  <T extends IMqttsnRuntimeRe
         return impl.getData();
     }
 
+
+
     @Override
     public void clear(IMqttsnContext context) throws MqttsnException {
         throw new UnsupportedOperationException("message registry is global");

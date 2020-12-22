@@ -30,10 +30,8 @@ import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.spi.IMqttsnRuntimeRegistry;
 import org.slj.mqtt.sn.spi.MqttsnException;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.logging.Level;
 
 public class MqttsnInMemoryMessageRegistry<T extends IMqttsnRuntimeRegistry>
         extends AbstractMqttsnMessageRegistry<T> {
@@ -65,5 +63,21 @@ public class MqttsnInMemoryMessageRegistry<T extends IMqttsnRuntimeRegistry>
     @Override
     public void clearAll() throws MqttsnException {
         messageLookup.clear();
+    }
+
+    @Override
+    public void tidy() throws MqttsnException {
+        Iterator<UUID> itr = messageLookup.keySet().iterator();
+        Date d = new Date();
+        synchronized (messageLookup){
+            while(itr.hasNext()){
+                UUID id = itr.next();
+                MessageImpl m = messageLookup.get(id);
+                if(m.getExpires().before(d)){
+                    logger.log(Level.INFO, String.format("expiring message [%s]", id));
+                    itr.remove();
+                }
+            }
+        }
     }
 }

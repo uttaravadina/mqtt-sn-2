@@ -30,12 +30,16 @@ import java.io.Serializable;
 
 public class InflightMessage implements Serializable {
 
+    public static enum DIRECTION {SENDING, RECEIVING}
+
     transient MqttsnWaitToken token;
     IMqttsnMessage message;
     long time;
+    DIRECTION direction;
 
-    public InflightMessage(IMqttsnMessage message, MqttsnWaitToken token) {
+    public InflightMessage(IMqttsnMessage message, DIRECTION direction, MqttsnWaitToken token) {
         this.time = System.currentTimeMillis();
+        this.direction = direction;
         this.message = message;
         this.token = token;
     }
@@ -52,6 +56,10 @@ public class InflightMessage implements Serializable {
         return token;
     }
 
+    public DIRECTION getDirection() {
+        return direction;
+    }
+
     public void setTime(long time) {
         this.time = time;
     }
@@ -62,6 +70,7 @@ public class InflightMessage implements Serializable {
                 "token=" + token +
                 ", message=" + message +
                 ", time=" + time +
+                ", direction=" + direction +
                 '}';
     }
 }

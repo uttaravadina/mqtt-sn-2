@@ -28,5 +28,4 @@ import org.slj.mqtt.sn.spi.IMqttsnRuntimeRegistry;
 
 public interface IMqttsnClientRuntimeRegistry extends IMqttsnRuntimeRegistry {
 
-    IMqttsnClientQueueService getClientQueueService();
 }

@@ -81,7 +81,7 @@ public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
                     }
                     context.setReceivePort(localSocket.getLocalPort());
                     receiveFromTransport(context, wrap(buff, p.getLength()));
-                } catch(Exception e){
+                } catch(Throwable e){
                     logger.log(Level.SEVERE, "encountered an error listening for traffic", e);
                 } finally {
                     buff = new byte[bufSize];
@@ -89,7 +89,7 @@ public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
             }
         }, threadName);
         thread.setDaemon(true);
-        thread.setPriority(Thread.MIN_PRIORITY);
+        thread.setPriority(Thread.MIN_PRIORITY + 1);
         thread.start();
         return thread;
     }

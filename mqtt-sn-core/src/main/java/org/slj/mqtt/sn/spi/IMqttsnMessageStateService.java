@@ -24,10 +24,7 @@
 
 package org.slj.mqtt.sn.spi;
 
-import org.slj.mqtt.sn.model.IMqttsnContext;
-import org.slj.mqtt.sn.model.MqttsnWaitToken;
-import org.slj.mqtt.sn.model.QueuedPublishMessage;
-import org.slj.mqtt.sn.model.TopicInfo;
+import org.slj.mqtt.sn.model.*;
 
 import java.util.Optional;
 
@@ -82,11 +79,11 @@ public interface IMqttsnMessageStateService<T extends IMqttsnRuntimeRegistry> ex
 
     void clearInflight(IMqttsnContext context) throws MqttsnException ;
 
-    boolean removeInflight(IMqttsnContext context, int msgId) throws MqttsnException ;
+    InflightMessage removeInflight(IMqttsnContext context, int msgId) throws MqttsnException ;
 
     boolean canSend(IMqttsnContext context) throws MqttsnException ;
 
-    int countInflight(IMqttsnContext context) throws MqttsnException ;
+    int countInflight(IMqttsnContext context, InflightMessage.DIRECTION direction) throws MqttsnException ;
 
     void scheduleFlush(IMqttsnContext context) throws MqttsnException ;
 }
