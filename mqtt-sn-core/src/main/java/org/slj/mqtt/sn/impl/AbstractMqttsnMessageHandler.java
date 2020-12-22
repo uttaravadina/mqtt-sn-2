@@ -37,7 +37,7 @@ import org.slj.mqtt.sn.wire.version1_2.payload.*;
 import java.util.logging.Level;
 
 public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegistry>
-        extends MqttsnService<U> implements IMqttsnMessageHandler {
+        extends MqttsnService<U> implements IMqttsnMessageHandler<U> {
 
     public boolean authorizeContext(INetworkContext context, String clientId) {
         try {
@@ -346,10 +346,12 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
             afterResponse(context, message, response);
 
         } catch(MqttsnException e){
-            logger.log(Level.SEVERE, "error encountered during receive, disconnect device", e);
+            logger.log(Level.SEVERE, "error encountered during receive, disconnect", e);
             handleResponse(context,
                     registry.getMessageFactory().createDisconnect());
-            throw e;
+            if(!registry.getRuntime().handleLocalDisconnectError(context, e)) {
+                throw e;
+            }
         }
     }
 
@@ -406,7 +408,7 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
             logger.log(Level.INFO, "disconnect received in response to my disconnect, dont send another!");
             return null;
         } else {
-            if(registry.getRuntime().disconnectReceived(context)){
+            if(registry.getRuntime().handleRemoteDisconnect(context)){
                 return registry.getMessageFactory().createDisconnect();
             }
             return null;

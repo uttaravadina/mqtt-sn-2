@@ -100,6 +100,9 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
 
     protected void receiveFromTransportInternal(INetworkContext networkContext, ByteBuffer buffer) {
         try {
+            if(!registry.getMessageHandler().running()){
+                return;
+            }
             byte[] data = drain(buffer);
             logger.log(Level.FINE, String.format("receiving [%s] bytes for [%s] from transport on thread [%s](%s)", data.length, networkContext,
                     Thread.currentThread().getName(), Thread.currentThread().getId()));
@@ -118,11 +121,11 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
                 notifyTrafficReceived(networkContext, data, message);
                 registry.getMessageHandler().receiveMessage(networkContext.getMqttsnContext(), message);
             } else {
-                logger.log(Level.WARNING, "auth could not be established, send disconnect");
+                logger.log(Level.WARNING, "auth could not be established, send disconnect that is not processed by application");
                 writeToTransportInternal(networkContext, registry.getMessageFactory().createDisconnect(), false);
             }
         } catch(Throwable t){
-            logger.log(Level.SEVERE, "error receiving message from transport", t);
+            logger.log(Level.SEVERE, "unhandled error;", t);
         }
     }
 

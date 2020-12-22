@@ -47,16 +47,16 @@ public class MqttsnGateway extends AbstractMqttsnRuntime {
         callStartup(runtime.getQueueProcessorStateCheckService());
         callStartup(runtime.getQueueProcessor());
         callStartup(runtime.getContextFactory());
-        if(runtime.getPermissionService() !=null ) callStartup(runtime.getPermissionService());
+        if (runtime.getPermissionService() != null) callStartup(runtime.getPermissionService());
 
         //-- start the network last
-        callStartup(((IMqttsnGatewayRuntimeRegistry)runtime).getGatewaySessionService());
-        callStartup(((IMqttsnGatewayRuntimeRegistry)runtime).getBrokerConnectionFactory());
-        callStartup(((IMqttsnGatewayRuntimeRegistry)runtime).getBrokerService());
+        callStartup(((IMqttsnGatewayRuntimeRegistry) runtime).getGatewaySessionService());
+        callStartup(((IMqttsnGatewayRuntimeRegistry) runtime).getBrokerConnectionFactory());
+        callStartup(((IMqttsnGatewayRuntimeRegistry) runtime).getBrokerService());
 
         //-- start discovery
-        if(runtime.getOptions().isEnableDiscovery()){
-            callStartup(((IMqttsnGatewayRuntimeRegistry)runtime).getGatewayAdvertiseService());
+        if (runtime.getOptions().isEnableDiscovery()) {
+            callStartup(((IMqttsnGatewayRuntimeRegistry) runtime).getGatewayAdvertiseService());
         }
 
         callStartup(runtime.getTransport());
@@ -66,8 +66,8 @@ public class MqttsnGateway extends AbstractMqttsnRuntime {
             @Override
             public void receive(IMqttsnContext context, String topicName, int QoS, byte[] data) {
                 try {
-                    ((IMqttsnGatewayRuntimeRegistry)registry).getBrokerService().publish(context, topicName, QoS, data);
-                } catch(MqttsnException e){
+                    ((IMqttsnGatewayRuntimeRegistry) registry).getBrokerService().publish(context, topicName, QoS, data);
+                } catch (MqttsnException e) {
                     logger.log(Level.SEVERE, "error publishing message to broker");
                 }
             }
@@ -79,17 +79,17 @@ public class MqttsnGateway extends AbstractMqttsnRuntime {
         //-- stop the networks first
         callShutdown(runtime.getTransport());
 
-        if(runtime.getOptions().isEnableDiscovery()){
-            callShutdown(((IMqttsnGatewayRuntimeRegistry)runtime).getGatewayAdvertiseService());
+        if (runtime.getOptions().isEnableDiscovery()) {
+            callShutdown(((IMqttsnGatewayRuntimeRegistry) runtime).getGatewayAdvertiseService());
         }
 
-        callShutdown(((IMqttsnGatewayRuntimeRegistry)runtime).getGatewaySessionService());
-        callShutdown(((IMqttsnGatewayRuntimeRegistry)runtime).getBrokerConnectionFactory());
-        callShutdown(((IMqttsnGatewayRuntimeRegistry)runtime).getBrokerService());
+        callShutdown(((IMqttsnGatewayRuntimeRegistry) runtime).getGatewaySessionService());
+        callShutdown(((IMqttsnGatewayRuntimeRegistry) runtime).getBrokerConnectionFactory());
+        callShutdown(((IMqttsnGatewayRuntimeRegistry) runtime).getBrokerService());
 
         //-- ensure we stop all the startable services
 
-        if(runtime.getPermissionService() !=null ) callShutdown(runtime.getPermissionService());
+        if (runtime.getPermissionService() != null) callShutdown(runtime.getPermissionService());
         callShutdown(runtime.getContextFactory());
         callShutdown(runtime.getMessageHandler());
         callShutdown(runtime.getMessageQueue());
@@ -101,8 +101,11 @@ public class MqttsnGateway extends AbstractMqttsnRuntime {
         callShutdown(runtime.getMessageStateService());
     }
 
-    @Override
-    public boolean disconnectReceived(IMqttsnContext context) {
+    public boolean handleRemoteDisconnect(IMqttsnContext context) {
+        return true;
+    }
+
+    public boolean handleLocalDisconnectError(IMqttsnContext context, Throwable t) {
         return true;
     }
 }

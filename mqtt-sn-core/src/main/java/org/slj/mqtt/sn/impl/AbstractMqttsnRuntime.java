@@ -158,5 +158,21 @@ public abstract class AbstractMqttsnRuntime {
             sentListeners.add(listener);
     }
 
-    public abstract boolean disconnectReceived(IMqttsnContext context);
+    /**
+     * A Disconnect was received from the remote context
+     * @param context - The context who sent the DISCONNECT
+     * @return should the local runtime send a DISCONNECT in reponse
+     */
+    public abstract boolean handleRemoteDisconnect(IMqttsnContext context);
+
+    /**
+     * When the runtime reaches a condition from which it cannot recover for the context,
+     * it will generate a DISCONNECT to send to the context, the exception and context are then
+     * passed to this method so the application has visibility of them
+     * @param context - The context whose state encountered the problem thag caused the DISCONNECT
+     * @param t - the exception that was encountered
+     * @return was the exception handled, if so, the trace is not thrown up to the transport layer,
+     * if not, the exception is reported into the transport layer
+     */
+    public abstract boolean handleLocalDisconnectError(IMqttsnContext context, Throwable t);
 }

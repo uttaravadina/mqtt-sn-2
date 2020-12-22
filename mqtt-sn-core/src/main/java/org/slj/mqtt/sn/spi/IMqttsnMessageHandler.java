@@ -27,7 +27,7 @@ package org.slj.mqtt.sn.spi;
 import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.INetworkContext;
 
-public interface IMqttsnMessageHandler {
+public interface IMqttsnMessageHandler<U extends IMqttsnRuntimeRegistry> extends IMqttsnService<U>{
 
     boolean authorizeContext(INetworkContext context, String clientId)
             throws MqttsnException;
