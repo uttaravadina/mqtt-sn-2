@@ -87,46 +87,10 @@ The executable jar will run the code per below.
 
 ### Quick start - Client
 
-Ensure you have the requisite projects mounted per the table above. You can then run the main method as below. You can see the configuration options for details
+Ensure you have the requisite projects mounted per the table above. You can then run the main method for in the Example.java located in the project. You can see the configuration options for details
 on how to customise your installation.
 
-```java
-public class Example {
-    public static void main(String[] args) throws Exception {
-        MqttsnUdpOptions udpOptions = new MqttsnUdpOptions().
-                withHost(InetAddress.getLoopbackAddress().getHostAddress()).
-                withPort(1028);
-
-        MqttsnOptions options = new MqttsnOptions().
-                withNetworkAddressEntry("gatewayId",
-                        NetworkAddress.from(1029, InetAddress.getLoopbackAddress().getHostAddress())).
-                withContextId("testClientId").
-                withMaxWait(15000).
-                withPredefinedTopic("my/example/topic/1", 1);
-
-        AbstractMqttsnRuntimeRegistry registry = MqttsnClientRuntimeRegistry.defaultConfiguration(options).
-                withTransport(new MqttsnUdpTransport(udpOptions)).
-                withCodec(MqttsnCodecs.MQTTSN_CODEC_VERSION_1_2);
-
-        AtomicInteger receiveCounter = new AtomicInteger();
-        CountDownLatch latch = new CountDownLatch(1);
-        try (MqttsnClient client = new MqttsnClient()) {
-            client.start(registry, options);
-            client.registerListener((String topic, int qos, byte[] data) -> {
-                receiveCounter.incrementAndGet();
-                System.err.println(String.format("received message [%s] [%s]",
-                        receiveCounter.get(), new String(data, MqttsnConstants.CHARSET)));
-                latch.countDown();
-            });
-            client.connect(30, true);
-            client.subscribe("my/example/topic/1", 2);
-            client.publish("my/example/topic/1", 2,  "my message".getBytes(), true);
-            latch.await(5, TimeUnit.SECONDS);
-            client.disconnect();
-        }
-    }
-}
-```
+[mqtt-sn-client](/mqtt-sn-client)
 
 ### Configuration
 
@@ -137,9 +101,10 @@ Options | Default Value | Type | Description
 ------------ | ------------- | ------------- | -------------
 contextId | NULL | String | This is used as either the clientId (when in a client runtime) or the gatewayId (when in a gateway runtime). **NB: This is a required field and must be set by the application.**
 maxWait | 10000 | int | Time in milliseconds to wait for a confirmation message where required. When calling a blocking method, this is the time the method will block until either the confirmation is received OR the timeout expires.
-threadHandoffFromTransport | true | boolean | Should the transport layer delegate to and from the handler layer using a thread hand-off. **NB: Depends on your transport implementation as to whether you should block.** 
-blockSendOnPreviousConfirmation | true | boolean | The client can choose to NOT waitOnCompletion of a previous delivery. If the application then immediately send a new message, the client will either fail-fast with a runtime exception or optionally block until the previous operation completes.
-enableDiscovery | true | boolean | When discovery is enabled the client will listen for broadcast messages from local gateways and add them to its network registry as it finds them.
+maxTopicLength | 1024 | int | Maximum number of characters allowed in a topic including wildcard and separator characters.
+threadHandoffFromTransport | true | boolean | Should the transport layer delegate to and from the handler layer using a thread hand-off. **NB: Depends on your transport implementation as to whether you should block.**
+handoffThreadCount | 5 | int | How many threads are used to process messages recieved from the transport layer 
+discoveryEnabled | true | boolean | When discovery is enabled the client will listen for broadcast messages from local gateways and add them to its network registry as it finds them.
 maxTopicsInRegistry | 128 | int | Max number of topics which can reside in the CLIENT registry. This does NOT include predefined alias's.
 msgIdStartAt | 1 | int (max. 65535) | Starting number for message Ids sent from the client to the gateways (each gateway has a unique count).
 aliasStartAt | 1 | int (max. 65535) | Starting number for alias's used to store topic values (NB: only applicable to gateways).
@@ -148,7 +113,8 @@ maxMessagesInQueue | 100 | int | Max number of messages allowed in a client's qu
 requeueOnInflightTimeout | true | boolean | When a publish message fails to confirm, should it be requeued for DUP sending at a later point.
 predefinedTopics | Config| Map | Where a client or gateway both know a topic alias in advance, any messages or subscriptions to the topic will be made using the predefined IDs. 
 networkAddressEntries | Config | Map | You can prespecify known locations for gateways and clients in the network address registry. NB. The runtime will dynamically update the registry with new clients / gateways as they are discovered. In the case of clients, they are unable to connect or message until at least 1 gateway is defined in config OR discovered.
-
+sleepClearsRegistrations  | true | boolean | When a client enters the ASLEEP state, should the NORMAL topic registered alias's be cleared down and reestablished during the next AWAKE or ACTIVE states.
+minFlushTime  | 1000 | int | Time in milliseconds between a gateway device last receiving a message before it begins processing the client queue
 ### Runtime
 
 You can hook into the runtime and provide your own implementations of various components or bind in listeners to give you control or visibility onto aspects of the system.

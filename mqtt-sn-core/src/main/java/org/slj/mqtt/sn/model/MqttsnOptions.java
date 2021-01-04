@@ -43,7 +43,6 @@ import java.util.Map;
  */
 public class MqttsnOptions {
 
-
     /**
      * By default, discover is NOT enabled on either the client or the gateway.
      */
@@ -195,7 +194,7 @@ public class MqttsnOptions {
      *
      * @see {@link MqttsnOptions#DEFAULT_SLEEP_CLEARS_REGISTRATIONS}
      *
-     * @param sleepClearsRegistrations - The idle time between receiving a message and starting a new publish operation (where number of messages on a client queue > 0)
+     * @param sleepClearsRegistrations - When a client enters the ASLEEP state, should the NORMAL topic registered alias's be cleared down and reestablished during the next AWAKE | ACTIVE states.
      * @return this configuration
      */
     public MqttsnOptions withSleepClearsRegistrations(boolean sleepClearsRegistrations){
