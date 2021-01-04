@@ -38,6 +38,26 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
+/**
+ * Provides a blocking command implementation, with the ability to handle transparent reconnection
+ * during unsolicited disconnection events.
+ *
+ * Publishing occurs asynchronously and is managed by a FIFO queue. The size of the queue is determined
+ * by the configuration supplied.
+ *
+ * Connect, subscribe, unsubscribe and disconnect ( &amp; sleep) are blocking calls which are considered successful on
+ * receipt of the correlated acknowledgement message.
+ *
+ * Management of the sleeping client state can either be supervised by the application, or by the client itself. During
+ * the sleep cycle, underlying resources (threads) are intelligently started and stopped. For example during sleep, the
+ * queue processing is closed down, and restarted during the Connected state.
+ *
+ * The client is {@link java.io.Closeable}. On close, a remote DISCONNECT operation is run (if required) and all encapsulated
+ * state (timers and threads) are stopped gracefully at best attempt. Once a client has been closed, it should be discarded and a new instance created
+ * should a new connection be required.
+ *
+ * For example use, please refer to {@link Example}.
+ */
 public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient {
 
     private volatile MqttsnSessionState state;
@@ -52,16 +72,27 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         this(false);
     }
 
+
+    /**
+     * Construct a new client instance specifying whether you want to client to automatically handle unsolicited DISCONNECT
+     * events.
+     *
+     * @param automaticReconnect - when an unsolicited remote DISCONNECT event occcurs, you can choose to allow transparent
+     *                           reconnection to your starting state. NB: The
+     *                           client will connect back to the CONNECTED state with clean session and keepAlive values taken
+     *                           from the initial values.
+     */
     public MqttsnClient(boolean automaticReconnect){
         this.automaticReconnect = automaticReconnect;
         if(automaticReconnect){
             recoveryThread = new Thread(() -> {
-                while(true){
+                while(running){
                     try {
                         synchronized (recoveryThread){
                             recoveryThread.wait();
-                            logger.log(Level.INFO, String.format("attempting to recover from unsolicited disconnect"));
-                            connect(keepAlive, cleanSession);
+                            if(running){
+                                connect(keepAlive, cleanSession);
+                            }
                         }
                     } catch(Exception e){
                         logger.log(Level.SEVERE, "error on automatic recovery thread", e);
@@ -115,6 +146,9 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     }
 
     @Override
+    /**
+     * @see {@link IMqttsnClient#connect(int, boolean)}
+     */
     public void connect(int keepAlive, boolean cleanSession) throws MqttsnException{
         if(!MqttsnUtils.validUInt16(keepAlive)){
             throw new MqttsnExpectationFailedException("invalid keepAlive supplied");
@@ -137,6 +171,9 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     }
 
     @Override
+    /**
+     * @see {@link IMqttsnClient#publish(String, int, byte[])}
+     */
     public void publish(String topicName, int QoS, byte[] data) throws MqttsnException{
         if(!MqttsnUtils.validQos(QoS)){
             throw new MqttsnExpectationFailedException("invalid QoS supplied");
@@ -155,6 +192,9 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     }
 
     @Override
+    /**
+     * @see {@link IMqttsnClient#subscribe(String, int)}
+     */
     public void subscribe(String topicName, int QoS) throws MqttsnException{
         if(!MqttsnUtils.validTopicName(topicName)){
             throw new MqttsnExpectationFailedException("invalid topicName supplied");
@@ -180,6 +220,9 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     }
 
     @Override
+    /**
+     * @see {@link IMqttsnClient#unsubscribe(String)}
+     */
     public void unsubscribe(String topicName) throws MqttsnException{
         if(!MqttsnUtils.validTopicName(topicName)){
             throw new MqttsnExpectationFailedException("invalid topicName supplied");
@@ -194,6 +237,9 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     }
 
     @Override
+    /**
+     * @see {@link IMqttsnClient#supervisedSleepWithWake(int, int, int, boolean)}
+     */
     public void supervisedSleepWithWake(int duration, int wakeAfterInterval, int maxWaitTime, boolean connectOnFinish)  throws MqttsnException {
 
         if(!MqttsnUtils.validUInt16(duration)){
@@ -212,7 +258,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         sleep(duration);
         while(sleepUntil > (now = System.currentTimeMillis())){
             long timeLeft = sleepUntil - now;
-            int period = (int) Math.min(duration, timeLeft / 1000);
+            long period = (int) Math.min(duration, timeLeft / 1000);
             //-- sleep for the wake after period
             try {
                 long wake = Math.min(wakeAfterInterval, period);
@@ -239,6 +285,9 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     }
 
     @Override
+    /**
+     * @see {@link IMqttsnClient#sleep(int)}
+     */
     public void sleep(int duration)  throws MqttsnException{
         if(!MqttsnUtils.validUInt16(duration)){
             throw new MqttsnExpectationFailedException("invalid duration supplied");
@@ -256,11 +305,17 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     }
 
     @Override
+    /**
+     * @see {@link IMqttsnClient#wake()}
+     */
     public void wake()  throws MqttsnException{
         wake(registry.getOptions().getMaxWait());
     }
 
     @Override
+    /**
+     * @see {@link IMqttsnClient#wake(int)}
+     */
     public void wake(int waitTime)  throws MqttsnException{
         IMqttsnSessionState state = checkSession(false);
         IMqttsnMessage message = registry.getMessageFactory().createPingreq(registry.getOptions().getContextId());
@@ -281,6 +336,9 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     }
 
     @Override
+    /**
+     * @see {@link IMqttsnClient#disconnect()}
+     */
     public void disconnect()  throws MqttsnException {
         disconnect(true);
     }
@@ -337,6 +395,9 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     }
 
     @Override
+    /**
+     * @see {@link IMqttsnClient#close()}
+     */
     public void close() throws IOException {
         try {
             disconnect();
@@ -360,10 +421,12 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         return c.getTime();
     }
 
+    /**
+     * @see {@link IMqttsnClient#getClientId()}
+     */
     public String getClientId(){
         return registry.getOptions().getContextId();
     }
-
 
     protected void stateChangeResponseCheck(IMqttsnSessionState sessionState, MqttsnWaitToken token, Optional<IMqttsnMessage> response, MqttsnClientState newState)
             throws MqttsnExpectationFailedException {

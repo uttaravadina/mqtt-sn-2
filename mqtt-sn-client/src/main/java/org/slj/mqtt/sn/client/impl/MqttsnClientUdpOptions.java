@@ -28,7 +28,10 @@ import org.slj.mqtt.sn.net.MqttsnUdpOptions;
 
 public class MqttsnClientUdpOptions extends MqttsnUdpOptions {
     {
-        withPort(0);
+        //-- set all the client ports to wildcard 0 for localhost availability assignment
+        withPort(DEFAULT_LOCAL_CLIENT_PORT);
+        withSecurePort(DEFAULT_LOCAL_CLIENT_PORT);
+        withBroadcastPort(DEFAULT_LOCAL_CLIENT_PORT);
         withBindBroadcastListener(true);
     }
 }

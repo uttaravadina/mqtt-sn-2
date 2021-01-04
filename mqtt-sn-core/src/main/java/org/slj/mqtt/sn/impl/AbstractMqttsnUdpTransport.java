@@ -24,14 +24,12 @@
 
 package org.slj.mqtt.sn.impl;
 
-import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.INetworkContext;
 import org.slj.mqtt.sn.net.MqttsnUdpOptions;
 import org.slj.mqtt.sn.spi.IMqttsnRuntimeRegistry;
 import org.slj.mqtt.sn.spi.MqttsnException;
 
 import java.nio.ByteBuffer;
-import java.util.logging.Level;
 
 public abstract class AbstractMqttsnUdpTransport<U extends IMqttsnRuntimeRegistry>
         extends AbstractMqttsnTransport<U> {

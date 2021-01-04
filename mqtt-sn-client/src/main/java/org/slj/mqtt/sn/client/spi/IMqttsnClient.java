@@ -120,15 +120,21 @@ public interface IMqttsnClient extends Closeable {
     void disconnect() throws MqttsnException;
 
     /**
-     * Registers a new Publish listener which will be notified when a message is successfully SENT to the gateway
+     * Registers a new Publish listener which will be notified when a PUBLISH message is successfully committed to the gateway
      * @param listener - The instance of the listener to notify
      */
     void registerSentListener(IMqttsnPublishSentListener listener);
 
     /**
-     * Registers a new Publish listener which will be notified when a message is successfully RECEIVED from the gateway
+     * Registers a new Publish listener which will be notified when a PUBLISH message is successfully RECEIVED committed from the gateway
      * @param listener - The instance of the listener to notify
      */
     void registerReceivedListener(IMqttsnPublishReceivedListener listener);
+
+    /**
+     * Return the clientId associated with this instance. The clientId is passed to the client from the configuration (contextId).
+     * @return - Return the clientId associated with this instance
+     */
+    String getClientId();
 
 }

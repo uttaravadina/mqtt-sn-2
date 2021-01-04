@@ -56,7 +56,7 @@ public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
         socket = options.getPort() > 0 ? new DatagramSocket(options.getPort()) : new DatagramSocket();
         receiverThread = createDatagramServer("mqttsn-udp-receiver", bufferSize, socket);
         if(options.getBindBroadcastListener() && registry.getOptions().isEnableDiscovery()) {
-            broadcastSocket = options.getMulticastPort() > 0 ? new DatagramSocket(options.getMulticastPort()) : new DatagramSocket();
+            broadcastSocket = options.getBroadcastPort() > 0 ? new DatagramSocket(options.getBroadcastPort()) : new DatagramSocket();
             broadcastSocket.setBroadcast(true);
             broadcastThread = createDatagramServer("mqttsn-udp-broadcast", bufferSize, broadcastSocket);
         }
@@ -125,9 +125,9 @@ public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
                 socket.setBroadcast(true);
                 for(InetAddress address : broadcastAddresses) {
                     logger.log(Level.FINE, String.format("broadcasting [%s] message to network interface [%s] -> [%s]",
-                            broadcastMessage.getMessageName(), address, options.getMulticastPort()));
+                            broadcastMessage.getMessageName(), address, options.getBroadcastPort()));
                     DatagramPacket packet
-                            = new DatagramPacket(arr, arr.length, address, options.getMulticastPort());
+                            = new DatagramPacket(arr, arr.length, address, options.getBroadcastPort());
                     socket.send(packet);
                 }
             }
