@@ -29,6 +29,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Lightweight meta-data reference to a message which will reside in client queues. NOTE: the payload of
+ * the message itself NOR the topic specification are included, this can be obtained JIT from the
+ * appropriate registries so we dont duplicate data across many queues.
+ */
 public class QueuedPublishMessage implements Serializable {
 
     private String topicPath;
@@ -36,7 +41,6 @@ public class QueuedPublishMessage implements Serializable {
     private int retryCount;
     private UUID messageId;
     private boolean retained;
-    private Map<String, String> contextProperties = new HashMap<>();
 
     public QueuedPublishMessage() {
     }
@@ -92,18 +96,6 @@ public class QueuedPublishMessage implements Serializable {
         this.retryCount = retryCount;
     }
 
-    public Map<String, String> getContextProperties() {
-        return contextProperties;
-    }
-
-    public void setContextProperties(Map<String, String> contextProperties) {
-        this.contextProperties = contextProperties;
-    }
-
-    public void addContextProperty(String key, String value){
-        contextProperties.put(key, value);
-    }
-
     @Override
     public String toString() {
         return "QueuedPublishMessage{" +
@@ -112,7 +104,6 @@ public class QueuedPublishMessage implements Serializable {
                 ", retryCount=" + retryCount +
                 ", messageId=" + messageId +
                 ", retained=" + retained +
-                ", contextProperties=" + contextProperties +
                 '}';
     }
 }
