@@ -30,23 +30,27 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Objects;
 
+/**
+ * A network address simply represents a host name or IP address and port combination.
+ * Represents a remote ipv4 or ipv6 location. Regardless of the supplied format, the address will
+ * be stored in its canonical form.
+ */
 public class NetworkAddress implements Serializable {
 
     private final String hostAddress;
     private final int port;
-    private final String path;
 
+    /**
+     * Create a new network address from the port and address supplied.
+     * @param port - The port on which the remote is bound
+     * @param hostAddress - A valid ipv4, ipv6 or host address. Where a name is supplied,
+     *                    an attempt will be made to eagerly resolve it so unknown hosts are derived eagerly.
+     * @throws UnknownHostException - no host could be found
+     */
     public NetworkAddress(int port, String hostAddress) throws UnknownHostException {
         this.hostAddress = InetAddress.getByName(hostAddress).getHostAddress();
         if(port < 0 || port > 65535) throw new IllegalArgumentException("port must be in range 0 <= port <= 65535");
         this.port = port;
-        this.path = null;
-    }
-
-    public NetworkAddress(String path) {
-        this.path = path;
-        this.hostAddress = null;
-        this.port = -1;
     }
 
     public String getHostAddress() {
@@ -57,23 +61,18 @@ public class NetworkAddress implements Serializable {
         return port;
     }
 
-    public String getPath() {
-        return path;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         NetworkAddress that = (NetworkAddress) o;
         return port == that.port &&
-                Objects.equals(hostAddress, that.hostAddress) &&
-                Objects.equals(path, that.path);
+                Objects.equals(hostAddress, that.hostAddress);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(hostAddress, port, path);
+        return Objects.hash(hostAddress, port);
     }
 
     public InetSocketAddress toSocketAddress(){
@@ -88,10 +87,11 @@ public class NetworkAddress implements Serializable {
         return new NetworkAddress(port, hostAddress);
     }
 
-    public static NetworkAddress from(String path){
-        return new NetworkAddress(path);
-    }
-
+    /**
+     * Convenience method to obtain a network address to local host loopback (127.0.0.1) on the port specified.
+     * @param port - the local port
+     * @return the NetworkAddress
+     */
     public static NetworkAddress localhost(int port) {
         try {
             return new NetworkAddress(port, "127.0.0.1");
@@ -105,7 +105,6 @@ public class NetworkAddress implements Serializable {
         final StringBuilder sb = new StringBuilder("SocketAddress [");
         sb.append("hostAddress='").append(hostAddress).append('\'');
         sb.append(", port=").append(port);
-        sb.append(", path='").append(path).append('\'');
         sb.append(']');
         return sb.toString();
     }
