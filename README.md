@@ -44,53 +44,17 @@ from a command line using;
 java -jar <path-to>/mqtt-sn-gateway-<version>.jar <localPort> <mqttBrokerClientId> <mqttBrokerHost> <mqttBrokerPort> <mqttBrokerUsername> <mqttBrokerPassword> >> <path-to>/mqtt-sn-gateway-udp.log 2>&1
 ```
 
-The executable jar will run the code per below.
+Running the executable jar will run the code specified in AggregatingGatewayMain.
 
-```java
-  public class AggregatingGatewayMain {
-      public static void main(String[] args) throws Exception {
-      
-         if(args.length < 6)
-                     throw new IllegalArgumentException("you must specify 6 arguments; <localPort>, <clientId>, <host>, <port>, <username> and <password>");
-         
-         int localPort = Integer.valueOf(args[0].trim());
-         String clientId = args[1].trim();
-         String host = args[2].trim();
-         int port = Integer.valueOf(args[3].trim());
-         String username = args[4].trim();
-         String password = args[5].trim();
- 
-         MqttsnOptions gatewayOptions = new MqttsnGatewayOptions().
-                 withGatewayId(5).
-                 withMaxConnectedClients(10).
-                 withGatewayAdvertiseTime(10).
-                 withContextId(clientId).
-                 withPredefinedTopic("/my/example/topic/1", 1);
- 
-         MqttsnBrokerOptions brokerOptions = new MqttsnBrokerOptions().
-                 withHost(host).
-                 withPort(port).
-                 withUsername(username).
-                 withPassword(password);
- 
-         AbstractMqttsnRuntimeRegistry registry = MqttsnGatewayRuntimeRegistry.defaultConfiguration(gatewayOptions).
-                 withBrokerConnectionFactory(new PahoMqttsnBrokerConnectionFactory()).
-                 withBrokerService(new MqttsnAggregatingBrokerService(brokerOptions)).
-                 withTransport(new MqttsnUdpTransport(new MqttsnUdpOptions().withPort(localPort))).
-                 withCodec(MqttsnCodecs.MQTTSN_CODEC_VERSION_1_2);
- 
-         MqttsnGateway gateway = new MqttsnGateway();
-         gateway.start(registry, gatewayOptions, true);
-      }
-  }
-```
+Click into [mqtt-sn-gateway-artefact](/mqtt-sn-gateway-artefact) for more details on the gateway.
+
 
 ### Quick start - Client
 
 Ensure you have the requisite projects mounted per the table above. You can then run the main method for in the Example.java located in the project. You can see the configuration options for details
 on how to customise your installation.
 
-[mqtt-sn-client](/mqtt-sn-client)
+Click into [mqtt-sn-client](/mqtt-sn-client) for more details on the client.
 
 ### Configuration
 
