@@ -68,8 +68,6 @@ public class MqttsnContext implements IMqttsnContext {
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder(" id = ");
-        sb.append(id);
-        return sb.toString();
+        return id;
     }
 }

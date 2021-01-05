@@ -52,7 +52,11 @@ public class MqttsnMessageQueueProcessor<T extends IMqttsnRuntimeRegistry>
             //-- if the queue is empty, then something will happen to retrigger this process, ie. message in or out
             //-- so safe to remove
             int count = registry.getMessageQueue().size(context);
-            logger.log(Level.INFO, String.format("processing queue size [%s] on thread [%s] for [%s]", count, Thread.currentThread().getName(), context));
+
+            if(logger.isLoggable(Level.FINE)){
+                logger.log(Level.FINE,
+                        String.format("processing queue size [%s] on thread [%s] for [%s]", count, Thread.currentThread().getName(), context));
+            }
 
             if(count == 0){
                 if(stateCheckService != null){

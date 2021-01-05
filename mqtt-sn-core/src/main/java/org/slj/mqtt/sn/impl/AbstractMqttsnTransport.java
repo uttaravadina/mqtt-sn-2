@@ -103,9 +103,11 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
                 return;
             }
             byte[] data = drain(buffer);
-            logger.log(Level.FINE, String.format("receiving [%s] bytes for [%s] from transport on thread [%s](%s)", data.length, networkContext,
-                    Thread.currentThread().getName(), Thread.currentThread().getId()));
+
             IMqttsnMessage message = getRegistry().getCodec().decode(data);
+
+            logger.log(Level.INFO, String.format("receiving [%s] bytes (%s) from [%s] on thread [%s]",
+                    data.length, message.getMessageName(), networkContext, Thread.currentThread().getName()));
 
             boolean authd = true;
             //-- if we detect an inbound id packet, we should authorise the context every time (even if the impl just reuses existing auth)
@@ -141,8 +143,9 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
     protected void writeToTransportInternal(INetworkContext context, IMqttsnMessage message, boolean notifyListeners){
         try {
             byte[] data = registry.getCodec().encode(message);
-            logger.log(Level.FINE, String.format("[%s] writing [%s] to transport on thread [%s](%s)", context, message,
-                    Thread.currentThread().getName(), Thread.currentThread().getId()));
+            logger.log(Level.INFO, String.format("writing [%s] bytes (%s) to [%s] on thread [%s]",
+                    data.length, message.getMessageName(), context, Thread.currentThread().getName()));
+
             writeToTransport(context, ByteBuffer.wrap(data, 0 , data.length));
             if(notifyListeners) notifyTrafficSent(context, data, message);
         } catch(Throwable e){
