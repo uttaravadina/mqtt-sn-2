@@ -130,10 +130,23 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
 
         if(count > 0){
             logger.log(Level.WARNING,
-                    String.format("unable to send [%s],[%s] to [%s], max inflight reached for direction [%s] [%s] -> [%s]",
+                    String.format("presently unable to send [%s],[%s] to [%s], max inflight reached for direction [%s] [%s] -> [%s]",
                             message, queuedPublishMessage, context, direction, count,
                             Objects.toString(getInflightMessages(context))));
-            throw new MqttsnExpectationFailedException("fail-fast mode on max inflight max - cap hit");
+
+            Optional<InflightMessage> blockingMessage =
+                    getInflightMessages(context).values().stream().filter(i -> i.getDirection() == direction).findFirst();
+            if(blockingMessage.isPresent() && clientMode){
+                //-- if we are in client mode, attempt to wait for the ongoing outbound message to complete before we issue next message
+                MqttsnWaitToken token = blockingMessage.get().getToken();
+                if(token != null){
+                    waitForCompletion(context, token);
+                    //-- recurse point
+                    return sendMessageInternal(context, message, queuedPublishMessage);
+                }
+            } else {
+                throw new MqttsnExpectationFailedException("max number of inflight messages reached");
+            }
         }
 
         if(!allowedToSend(context, message)){
@@ -342,7 +355,8 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         }
     }
 
-    protected MqttsnWaitToken markInflight(IMqttsnContext context, IMqttsnMessage message, QueuedPublishMessage queuedPublishMessage) throws MqttsnException {
+    protected MqttsnWaitToken markInflight(IMqttsnContext context, IMqttsnMessage message, QueuedPublishMessage queuedPublishMessage)
+            throws MqttsnException {
 
         InflightMessage.DIRECTION direction =
                 message instanceof MqttsnPublish ?
@@ -353,7 +367,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
 
         if(countInflight(context, direction) >=
                 registry.getOptions().getMaxMessagesInflight()){
-            logger.log(Level.INFO, String.format("[%s] max inflight message number reached, cannot add [%s]", context, message));
+            logger.log(Level.WARNING, String.format("[%s] max inflight message number reached, either wait of fail-fast [%s]", context, message));
             throw new MqttsnExpectationFailedException("max number of inflight messages reached");
         }
 

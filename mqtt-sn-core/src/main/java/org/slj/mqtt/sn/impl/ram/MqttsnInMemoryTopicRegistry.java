@@ -31,6 +31,7 @@ import org.slj.mqtt.sn.spi.IMqttsnRuntimeRegistry;
 import org.slj.mqtt.sn.spi.MqttsnException;
 
 import java.util.*;
+import java.util.logging.Level;
 
 public class MqttsnInMemoryTopicRegistry<T extends IMqttsnRuntimeRegistry>
         extends AbstractTopicRegistry<T> {
@@ -48,7 +49,7 @@ public class MqttsnInMemoryTopicRegistry<T extends IMqttsnRuntimeRegistry>
         if(set == null){
             synchronized (this){
                 if((set = topicLookups.get(context)) == null){
-                    set = new HashSet<>();
+                    set = Collections.synchronizedSet(new HashSet<>());
                     topicLookups.put(context, set);
                 }
             }
@@ -59,11 +60,13 @@ public class MqttsnInMemoryTopicRegistry<T extends IMqttsnRuntimeRegistry>
     protected Map<String, Integer> getRegistrationsInternal(IMqttsnContext context, boolean confirmedOnly){
         Set<ConfirmableTopicRegistration> set = getAll(context);
         Map<String, Integer> map = new HashMap<>();
-        Iterator<ConfirmableTopicRegistration> itr  = set.iterator();
-        if(itr.hasNext()){
-            ConfirmableTopicRegistration reg = itr.next();
-            if(!confirmedOnly || reg.confirmed){
-                map.put(reg.topicPath, reg.aliasId);
+        synchronized (set){
+            Iterator<ConfirmableTopicRegistration> itr  = set.iterator();
+            while(itr.hasNext()){
+                ConfirmableTopicRegistration reg = itr.next();
+                if(!confirmedOnly || reg.confirmed){
+                    map.put(reg.topicPath, reg.aliasId);
+                }
             }
         }
         return map;
@@ -75,16 +78,18 @@ public class MqttsnInMemoryTopicRegistry<T extends IMqttsnRuntimeRegistry>
         Set<ConfirmableTopicRegistration> set = getAll(context);
         Iterator<ConfirmableTopicRegistration> itr  = set.iterator();
         boolean updated = false;
-        if(itr.hasNext()){
-            ConfirmableTopicRegistration reg = itr.next();
-            if(reg.topicPath.equals(topicPath)){
-                reg.confirmed = true;
-                reg.setAliasId(alias);
-                updated = true;
+        synchronized (set){
+            if(itr.hasNext()){
+                ConfirmableTopicRegistration reg = itr.next();
+                if(reg.topicPath.equals(topicPath)){
+                    reg.confirmed = true;
+                    reg.setAliasId(alias);
+                    updated = true;
+                }
             }
-        }
-        if(!updated){
-            set.add(new ConfirmableTopicRegistration(topicPath, alias, true));
+            if(!updated){
+                set.add(new ConfirmableTopicRegistration(topicPath, alias, true));
+            }
         }
 
         return !updated;
@@ -107,10 +112,12 @@ public class MqttsnInMemoryTopicRegistry<T extends IMqttsnRuntimeRegistry>
         } else{
             Set<ConfirmableTopicRegistration> set = topicLookups.get(context);
             if(set != null){
-                Iterator<ConfirmableTopicRegistration> itr  = set.iterator();
-                if(itr.hasNext()){
-                    ConfirmableTopicRegistration reg = itr.next();
-                    reg.confirmed = false;
+                synchronized (set){
+                    Iterator<ConfirmableTopicRegistration> itr  = set.iterator();
+                    if(itr.hasNext()){
+                        ConfirmableTopicRegistration reg = itr.next();
+                        reg.confirmed = false;
+                    }
                 }
             }
         }
@@ -158,6 +165,15 @@ public class MqttsnInMemoryTopicRegistry<T extends IMqttsnRuntimeRegistry>
         }
 
         @Override
+        public String toString() {
+            return "ConfirmableTopicRegistration{" +
+                    "confirmed=" + confirmed +
+                    ", topicPath='" + topicPath + '\'' +
+                    ", aliasId=" + aliasId +
+                    '}';
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -167,7 +183,8 @@ public class MqttsnInMemoryTopicRegistry<T extends IMqttsnRuntimeRegistry>
 
         @Override
         public int hashCode() {
-            return Objects.hash(topicPath);
+            int result = topicPath.hashCode();
+            return result;
         }
     }
 }

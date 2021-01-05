@@ -9,6 +9,7 @@ import org.slj.mqtt.sn.wire.MqttsnWireUtils;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Level;
 
 public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
@@ -75,7 +76,8 @@ public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
         }
 
         if(topicPath == null) {
-            logger.log(Level.WARNING, String.format("unable to find matching topicPath in system for [%s] -> [%s]", topicInfo, context));
+            logger.log(Level.WARNING, String.format("unable to find matching topicPath in system for [%s] -> [%s], available was [%s]",
+                    topicInfo, context, Objects.toString(getRegistrationsInternal(context, false))));
             throw new MqttsnExpectationFailedException("unable to find matching topicPath in system");
         }
         return rationalizeTopic(context, topicPath);
@@ -185,8 +187,6 @@ public abstract class AbstractTopicRegistry <T extends IMqttsnRuntimeRegistry>
         }
         return info;
     }
-
-
 
     protected abstract boolean addOrUpdateRegistration(IMqttsnContext context, String topicPath, int alias) throws MqttsnException;
 
