@@ -80,10 +80,8 @@ public class Example {
 
             //-- register any publish sent listeners you require
             client.registerSentListener((IMqttsnContext context, UUID messageId, String topic, int qos, byte[] data) -> {
-                receiveCounter.incrementAndGet();
-                System.err.println(String.format("sent message [%s] [%s]",
-                        receiveCounter.get(), new String(data, MqttsnConstants.CHARSET)));
-                latch.countDown();
+                System.err.println(String.format("sent message [%s]",
+                        new String(data, MqttsnConstants.CHARSET)));
             });
 
             //-- issue a connect command - the method will block until completion
