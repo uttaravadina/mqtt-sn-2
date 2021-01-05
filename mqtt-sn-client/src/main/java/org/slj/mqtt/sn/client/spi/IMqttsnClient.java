@@ -36,7 +36,8 @@ import java.io.Closeable;
 public interface IMqttsnClient extends Closeable {
 
     /**
-     * A blocking call to issue a CONNECT packet. If it returns with an exception, your client will be considered in ACTIVE mode.
+     * A blocking call to issue a CONNECT packet. On return your client will be considered in ACTIVE mode unless an exception
+     * is thrown.
      *
      * @param keepAlive - Time in seconds to keep the session alive before the gateway times you out
      * @param cleanSession - Whether tidy up any existing session state on the gateway; including message queues, subscriptions and registrations
