@@ -321,7 +321,6 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                             getTopicPathFromPublish(context, pub),
                             ((MqttsnPublish) message).getQoS(),
                             ((MqttsnPublish) message).getData());
-                    logger.log(Level.INFO, String.format("committing inbound publish [%s]", op));
                     getUncommittedMessages(context).add(op);
                 }
             }

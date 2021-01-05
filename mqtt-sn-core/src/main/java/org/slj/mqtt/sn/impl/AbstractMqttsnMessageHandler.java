@@ -196,8 +196,10 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
 
             IMqttsnMessage originatingMessage = null;
 
-            logger.log(Level.INFO, String.format("mqtt-sn handler [%s] handling inbound message [%s]",
-                    context, message));
+            if(logger.isLoggable(Level.FINE)){
+                logger.log(Level.FINE, String.format("mqtt-sn handler [%s] handling inbound message [%s]",
+                        context, message));
+            }
 
             boolean errord = false;
             if(registry.getMessageStateService() != null){
