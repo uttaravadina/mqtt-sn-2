@@ -31,8 +31,6 @@ import java.util.List;
 
 public interface IMqttsnRuntimeRegistry {
 
-    void setOptions(MqttsnOptions options);
-
     void setRuntime(AbstractMqttsnRuntime runtime);
 
     void init();

@@ -27,8 +27,22 @@ package org.slj.mqtt.sn.spi;
 import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.INetworkContext;
 
+/**
+ * The message handler is delegated to by the transport layer and its job is to process
+ * inbound messages and marshall into other controllers to manage state lifecycle, authentication, permission
+ * etc.
+ *
+ * It is directly responsible for creating response messages and sending them back to the transport layer
+ */
 public interface IMqttsnMessageHandler<U extends IMqttsnRuntimeRegistry> extends IMqttsnService<U>{
 
+    /**
+     * Determine if a network location and clientId are considered authorised
+     * @param context - the network context from where a message originated
+     * @param clientId - the clientId passed in during a CONNECT procedure
+     * @return - true if we consider the context authorised, false otherwise
+     * @throws MqttsnException - an error occurred
+     */
     boolean authorizeContext(INetworkContext context, String clientId)
             throws MqttsnException;
 

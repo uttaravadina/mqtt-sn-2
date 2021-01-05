@@ -24,11 +24,21 @@
 
 package org.slj.mqtt.sn.spi;
 
-import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.INetworkContext;
 
 import java.nio.ByteBuffer;
 
+/**
+ * The transport layer is responsible for managing the receiving and sending of messages over some connection.
+ * No session is assumed by the application and the connection is considered stateless at this point.
+ * It is envisaged implementations will include UDP (with and without DTLS), TCP-IP (with and without TLS),
+ * BLE and ZigBee.
+ *
+ * Please refer to {@link org.slj.mqtt.sn.impl.AbstractMqttsnTransport} and sub-class your own implementations
+ * or choose an existing implementation out of the box.
+ *
+ * @see {@link org.slj.mqtt.sn.net.MqttsnUdpTransport} for an example of an out of the box implementation.
+ */
 public interface IMqttsnTransport {
 
     void receiveFromTransport(INetworkContext context, ByteBuffer buffer);

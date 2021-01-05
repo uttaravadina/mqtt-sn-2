@@ -25,7 +25,6 @@
 package org.slj.mqtt.sn.net;
 
 import org.slj.mqtt.sn.impl.AbstractMqttsnUdpTransport;
-import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.INetworkContext;
 import org.slj.mqtt.sn.spi.IMqttsnMessage;
 import org.slj.mqtt.sn.spi.MqttsnException;
@@ -38,6 +37,15 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.logging.Level;
 
+/**
+ * Provides a transport over User Datagram Protocol (UDP). This implementation uses a receiver thread which binds
+ * onto a Socket in a tight loop blocking on receive with no socket timeout set (0). The receiver thread will simply hand packets
+ * off to the base receive method who will either pass to the thread pool for handling or handle blocking depending on the
+ * configuration of the runtime.
+ *
+ * The broadcast-receiver when activated runs on it own thread, listening on the broadcast port, updating the registry
+ * when new contexts are discovered.
+ */
 public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
 
     private DatagramSocket socket;
@@ -54,6 +62,7 @@ public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
 
         int bufferSize = options.getReceiveBuffer();
         socket = options.getPort() > 0 ? new DatagramSocket(options.getPort()) : new DatagramSocket();
+        //-- by default we do not set SoTimeout (infinite) which will block until recieve
         receiverThread = createDatagramServer("mqttsn-udp-receiver", bufferSize, socket);
         if(options.getBindBroadcastListener() && registry.getOptions().isEnableDiscovery()) {
             broadcastSocket = options.getBroadcastPort() > 0 ? new DatagramSocket(options.getBroadcastPort()) : new DatagramSocket();
@@ -77,7 +86,7 @@ public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
                         //- NB: this is NOT auth, this is simply creating a context to which we can respond, auth can
                         //-- happen during the mqtt-sn context creation, at which point we can talk back to the device
                         //-- with error packets and the like
-                        context = registry.getContextFactory().createInitialContext(address);
+                        context = registry.getContextFactory().createInitialNetworkContext(address);
                     }
                     context.setReceivePort(localSocket.getLocalPort());
                     receiveFromTransport(context, wrap(buff, p.getLength()));

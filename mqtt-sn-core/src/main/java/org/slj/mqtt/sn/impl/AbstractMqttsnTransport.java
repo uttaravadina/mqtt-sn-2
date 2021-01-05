@@ -24,14 +24,8 @@
 
 package org.slj.mqtt.sn.impl;
 
-import org.slj.mqtt.sn.codec.MqttsnCodecException;
-import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.INetworkContext;
-import org.slj.mqtt.sn.spi.MqttsnException;
 import org.slj.mqtt.sn.spi.*;
-import org.slj.mqtt.sn.wire.MqttsnWireUtils;
-import org.slj.mqtt.sn.wire.version1_2.payload.MqttsnConnect;
-import org.slj.mqtt.sn.wire.version1_2.payload.MqttsnPingreq;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -41,6 +35,11 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
+/**
+ * The abstract transport implementation provides many of the requisite behaviours required of the
+ * transport layer, including message marshalling, thread handling (handoff), authority checking and traffic listener notification.
+ * You should sub-class this base as a starting point for you implementations.
+ */
 public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
         extends MqttsnService<U> implements IMqttsnTransport {
 

@@ -28,6 +28,13 @@ import org.slj.mqtt.sn.model.*;
 
 import java.util.Optional;
 
+/**
+ * The state service is responsible for sending messages and processing received messages. It maintains state
+ * and tracks messages in and out and their successful acknowledgement (or not).
+ *
+ * The message handling layer will call into the state service with messages it has received, and the queue processor
+ * will use the state service to dispatch new outbound publish messages.
+ */
 public interface IMqttsnMessageStateService<T extends IMqttsnRuntimeRegistry> extends IMqttsnRegistry<T> {
 
     /**
@@ -77,13 +84,45 @@ public interface IMqttsnMessageStateService<T extends IMqttsnRuntimeRegistry> ex
      */
     Optional<IMqttsnMessage> waitForCompletion(IMqttsnContext context, MqttsnWaitToken token, int customWaitTime) throws MqttsnExpectationFailedException;
 
+    /**
+     * If a context has any messages inflight, notify the state service to clear them up, either requeuing or discarding
+     * according to configuration
+     * @param context - The context to whom you are speaking
+     * @throws MqttsnException - an error has occurred
+     */
     void clearInflight(IMqttsnContext context) throws MqttsnException ;
 
-    InflightMessage removeInflight(IMqttsnContext context, int msgId) throws MqttsnException ;
-
-    boolean canSend(IMqttsnContext context) throws MqttsnException ;
-
+    /**
+     * Ccount the number of message inflight for a given direction and context
+     * @param context - The context to whom you are speaking
+     * @param direction - Inflight has 2 channels, inbound and outbound per the spec. Count in which direction.
+     * @return The number of messages inflight in a given direction
+     * @throws MqttsnException - an error has occurred
+     */
     int countInflight(IMqttsnContext context, InflightMessage.DIRECTION direction) throws MqttsnException ;
 
+    /**
+     * Remove a specific message from inflight using its messageId, returning the message.
+     * If no message exists inflight with the corresponding ID, null will be returned.
+     * @param context - The context to whom you are speaking
+     * @param msgId - The message id to return
+     * @return - the corresponding message or NULL if not found
+     * @throws MqttsnException - an error has occurred
+     */
+    InflightMessage removeInflight(IMqttsnContext context, int msgId) throws MqttsnException ;
+
+    /**
+     * According to the state rules, are we in a position to send PUBLISH messages to the given context
+     * @param context - The context to whom you are speaking
+     * @return true if the state service think we're ok to send PUBLISHES to the device, else false
+     * @throws MqttsnException - an error has occurred
+     */
+    boolean canSend(IMqttsnContext context) throws MqttsnException ;
+
+    /**
+     * Mark a context active to have its outbound queue processed
+     * @param context - The context whose queue should be processed
+     * @throws MqttsnException - an error has occurred
+     */
     void scheduleFlush(IMqttsnContext context) throws MqttsnException ;
 }

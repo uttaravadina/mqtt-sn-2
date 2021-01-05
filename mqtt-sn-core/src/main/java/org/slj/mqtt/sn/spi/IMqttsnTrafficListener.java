@@ -24,12 +24,16 @@
 
 package org.slj.mqtt.sn.spi;
 
-import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.INetworkContext;
 
 /**
- * Supply traffic listeners into your runtime. Any bound instances will be
- * called back and notified of traffic through the transport layer
+ * Traffic listeners can contributed to the runtime to be notified of any traffic processed by
+ * the transport layer. Listeners are not able to affect the traffic in transit or the business
+ * logic executed during the course of the traffic, they are merely observers.
+ *
+ * The listeners ~may be notified asynchronously from the application, and thus they cannot be relied
+ * upon to give an absolute timeline of traffic.
+ *
  */
 public interface IMqttsnTrafficListener {
 

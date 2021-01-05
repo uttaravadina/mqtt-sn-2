@@ -17,7 +17,7 @@ public class MqttsnContextFactory<T extends IMqttsnRuntimeRegistry>
     protected static Logger logger = Logger.getLogger(MqttsnContextFactory.class.getName());
 
     @Override
-    public INetworkContext createInitialContext(NetworkAddress address) throws MqttsnException {
+    public INetworkContext createInitialNetworkContext(NetworkAddress address) throws MqttsnException {
 
         logger.log(Level.INFO,
                 String.format("not network context exists for address, create new one for [%s]", address));
@@ -25,7 +25,7 @@ public class MqttsnContextFactory<T extends IMqttsnRuntimeRegistry>
     }
 
     @Override
-    public IMqttsnContext createInitialContext(INetworkContext networkContext, String clientId) throws MqttsnSecurityException {
+    public IMqttsnContext createInitialApplicationContext(INetworkContext networkContext, String clientId) throws MqttsnSecurityException {
 
         logger.log(Level.INFO,
                 String.format("no mqttsn context exists for network context & client id, create new one [%s]", clientId));

@@ -30,7 +30,7 @@ import org.slj.mqtt.sn.codec.MqttsnCodecException;
  * A codec contains all the functionality to marshall and unmarshall
  * wire traffic in the format specified by the implementation. Further,
  * it also provides a message factory instance which allows construction
- * of wire messages hiding the unlying transport format. This allows versioned
+ * of wire messages hiding the underlying transport format. This allows versioned
  * protocol support.
  *
  * @author Simon Johnson <simon622 AT gmail DOT com>

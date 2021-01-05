@@ -28,7 +28,6 @@ import org.slj.mqtt.sn.MqttsnConstants;
 import org.slj.mqtt.sn.codec.MqttsnCodecException;
 import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.INetworkContext;
-import org.slj.mqtt.sn.model.InflightMessage;
 import org.slj.mqtt.sn.model.TopicInfo;
 import org.slj.mqtt.sn.spi.*;
 import org.slj.mqtt.sn.utils.MqttsnUtils;
@@ -41,7 +40,7 @@ public abstract class AbstractMqttsnMessageHandler<U extends IMqttsnRuntimeRegis
 
     public boolean authorizeContext(INetworkContext context, String clientId) {
         try {
-            IMqttsnContext mqttsnContext = registry.getContextFactory().createInitialContext(context, clientId);
+            IMqttsnContext mqttsnContext = registry.getContextFactory().createInitialApplicationContext(context, clientId);
             if(mqttsnContext != null){
                 context.setMqttsnContext(mqttsnContext);
                 registry.getNetworkRegistry().putContext(context);

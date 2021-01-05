@@ -1,15 +1,17 @@
 package org.slj.mqtt.sn.spi;
 
-import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.model.INetworkContext;
 import org.slj.mqtt.sn.net.NetworkAddress;
 
 import java.net.InetAddress;
-import java.net.SocketException;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * The network registry maintains a list of known network contexts against a remote address ({@link NetworkAddress}).
+ * It exposes functionality to wait for discovered contexts as well as returning a list of valid broadcast addresses.
+ */
 public interface INetworkAddressRegistry {
 
     INetworkContext getContext(NetworkAddress address) throws NetworkRegistryException ;
