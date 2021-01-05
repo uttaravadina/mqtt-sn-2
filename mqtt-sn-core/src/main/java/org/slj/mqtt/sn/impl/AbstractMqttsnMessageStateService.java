@@ -180,7 +180,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
     }
 
     @Override
-    public Optional<IMqttsnMessage> waitForCompletion(IMqttsnContext context, final MqttsnWaitToken token, int customWaitTime) throws MqttsnExpectationFailedException {
+    public Optional<IMqttsnMessage> waitForCompletion(IMqttsnContext context, final MqttsnWaitToken token, int waitTime) throws MqttsnExpectationFailedException {
         try {
             IMqttsnMessage message = token.getMessage();
             if(token.isComplete()){
@@ -189,7 +189,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
             IMqttsnMessage response = null;
 
             long start = System.currentTimeMillis();
-            long timeToWait = Math.max(customWaitTime, 0);
+            long timeToWait = Math.max(waitTime, 0);
             synchronized(token){
                 //-- code against spurious wake up
                 while(!token.isComplete() &&
@@ -207,11 +207,12 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                 }
                 return Optional.ofNullable(response);
             } else {
-                logger.log(Level.WARNING, String.format("token timed out waiting for response to [%s] in [%s]",
+                logger.log(Level.WARNING, String.format("token timed out waiting [%s]ms for response to [%s] in [%s]",
+                        waitTime,
                         message,
                         MqttsnUtils.getDurationString(time)));
                 token.markError();
-                throw new MqttsnExpectationFailedException("unable to obtain response within timeout");
+                throw new MqttsnExpectationFailedException("unable to obtain response within timeout ("+waitTime+")");
             }
 
         } catch(InterruptedException e){

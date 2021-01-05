@@ -135,6 +135,8 @@ public abstract class AbstractMqttsnRuntime {
     }
 
     protected void setupEnvironment(){
+        System.setProperty("java.util.logging.ConsoleHandler.level", "INFO");
+        System.setProperty("java.util.logging.ConsoleHandler.formatter", "java.util.logging.SimpleFormatter");
         System.setProperty("java.util.logging.SimpleFormatter.format", "[%1$tc] %4$s %2$s - %5$s %6$s%n");
     }
 
