@@ -116,6 +116,13 @@ public interface IMqttsnClient extends Closeable {
     void wake(int waitTime)  throws MqttsnException;
 
     /**
+     * Issue a PINGREQ during CONNECTED mode. This operation will not affect the state of the runtime, with the exception of
+     * updating the last message sent time timestamp
+     * @throws MqttsnException -  An error occurred
+     */
+    void ping() throws MqttsnException;
+
+    /**
      * DISCONNECT from the gateway. Closes down any local queues and active processing
      */
     void disconnect() throws MqttsnException;

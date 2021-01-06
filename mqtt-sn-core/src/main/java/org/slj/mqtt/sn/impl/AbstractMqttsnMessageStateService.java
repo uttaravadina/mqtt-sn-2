@@ -15,6 +15,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
     protected static final Integer WEAK_ATTACH_ID = new Integer(MqttsnConstants.USIGNED_MAX_16 + 1);
     protected boolean clientMode;
 
+    protected Map<IMqttsnContext, Date> lastMessageSent;
     protected Map<LastIdContext, Integer> lastUsedMsgIds;
     protected Map<IMqttsnContext, List<CommitOperation>> uncommittedMessages;
     protected Set<FlushQueueOperation> flushOperations;
@@ -29,6 +30,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         uncommittedMessages = Collections.synchronizedMap(new HashMap());
         flushOperations = Collections.synchronizedSet(new HashSet());
         lastUsedMsgIds = Collections.synchronizedMap(new HashMap());
+        lastMessageSent = Collections.synchronizedMap(new HashMap());
     }
 
     @Override
@@ -171,6 +173,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
             }
 
             registry.getTransport().writeToTransport(context.getNetworkContext(), message);
+            lastMessageSent.put(context, new Date());
 
             //-- the only publish that does not require an ack is QoS so send to app as delivered
             if(!requiresResponse && message instanceof MqttsnPublish){
@@ -506,6 +509,11 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
     @Override
     public boolean canSend(IMqttsnContext context) throws MqttsnException {
         return countInflight(context, InflightMessage.DIRECTION.SENDING) == 0;
+    }
+
+    @Override
+    public Date getMessageLastSentToContext(IMqttsnContext context) {
+        return lastMessageSent.get(context);
     }
 
     protected String getTopicPathFromPublish(IMqttsnContext context, MqttsnPublish publish) throws MqttsnException {

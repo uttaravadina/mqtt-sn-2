@@ -61,12 +61,11 @@ import java.util.logging.Level;
 public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient {
 
     private volatile MqttsnSessionState state;
-    private final boolean automaticReconnect;
-
     private volatile int keepAlive;
     private volatile boolean cleanSession;
+    private static int AUTOMATIC_PING_DIVISOR = 4;
 
-    private Thread recoveryThread = null;
+    private Thread managedConnectionThread = null;
 
     public MqttsnClient(){
         this(false);
@@ -77,30 +76,13 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
      * Construct a new client instance specifying whether you want to client to automatically handle unsolicited DISCONNECT
      * events.
      *
-     * @param automaticReconnect - when an unsolicited remote DISCONNECT event occcurs, you can choose to allow transparent
-     *                           reconnection to your starting state. NB: The
-     *                           client will connect back to the CONNECTED state with clean session and keepAlive values taken
-     *                           from the initial values.
+     * @param managedConnection - You can choose to use managed connections which will actively monitor your connection with the remote gateway,
+     *                          handling any unsolicited remote DISCONNECTs by RECONNECTING your session as well as ensuring the gateway keepAlive
+     *                          is maintained (by issuing PINGs in periods of inactivity).
      */
-    public MqttsnClient(boolean automaticReconnect){
-        this.automaticReconnect = automaticReconnect;
-        if(automaticReconnect){
-            recoveryThread = new Thread(() -> {
-                while(running){
-                    try {
-                        synchronized (recoveryThread){
-                            recoveryThread.wait();
-                            if(running){
-                                connect(keepAlive, cleanSession);
-                            }
-                        }
-                    } catch(Exception e){
-                        logger.log(Level.SEVERE, "error on automatic recovery thread", e);
-                    }
-                }
-            });
-            recoveryThread.setDaemon(true);
-            recoveryThread.start();
+    public MqttsnClient(boolean managedConnection){
+        if(managedConnection){
+            activateManagedConnection();
         }
     }
 
@@ -337,6 +319,19 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
 
     @Override
     /**
+     * @see {@link IMqttsnClient#ping()}
+     */
+    public void ping()  throws MqttsnException{
+        IMqttsnSessionState state = checkSession(true);
+        IMqttsnMessage message = registry.getMessageFactory().createPingreq(registry.getOptions().getContextId());
+        synchronized (this){
+            MqttsnWaitToken token = registry.getMessageStateService().sendMessage(state.getContext(), message);
+            registry.getMessageStateService().waitForCompletion(state.getContext(), token);
+        }
+    }
+
+    @Override
+    /**
      * @see {@link IMqttsnClient#disconnect()}
      */
     public void disconnect()  throws MqttsnException {
@@ -473,6 +468,50 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         return state;
     }
 
+    protected void activateManagedConnection(){
+        if(managedConnectionThread == null){
+            final long delta = Math.max(keepAlive, 60) / AUTOMATIC_PING_DIVISOR  * 1000;
+            managedConnectionThread = new Thread(() -> {
+                while(true){
+                    try {
+                        synchronized (managedConnectionThread){
+                            logger.log(Level.INFO,
+                                    String.format("managed connection monitor is running at time delta [%s]...", delta));
+                            managedConnectionThread.wait(delta);
+                            if(running){
+                                synchronized (this){ //-- we could receive a unsolicited disconnect during passive reconnection | ping..
+                                    IMqttsnSessionState state = checkSession(false);
+                                    if(state != null){
+                                        if(state.getClientState() == MqttsnClientState.DISCONNECTED){
+                                            logger.log(Level.INFO, "managed connection issuing new soft connection...");
+                                            connect(keepAlive, false);
+                                        }
+                                        else if(state.getClientState() == MqttsnClientState.CONNECTED){
+                                            if(keepAlive > 0){ //-- keepAlive 0 means alive forever, dont bother pinging
+                                                Date lastMessageSent = registry.getMessageStateService().
+                                                        getMessageLastSentToContext(state.getContext());
+                                                if(lastMessageSent == null || System.currentTimeMillis() >
+                                                        lastMessageSent.getTime() + delta ){
+                                                    logger.log(Level.INFO, "managed connection issuing ping...");
+                                                    ping();
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } catch(Exception e){
+                        logger.log(Level.SEVERE, "error on connection manager thread", e);
+                    }
+                }
+            });
+            managedConnectionThread.setPriority(Thread.MIN_PRIORITY);
+            managedConnectionThread.setDaemon(true);
+            managedConnectionThread.start();
+        }
+    }
+
     @Override
     public boolean handleRemoteDisconnect(IMqttsnContext context) {
 
@@ -484,10 +523,10 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
             logger.log(Level.WARNING, String.format("error handling unsolicited disconnect from gateway [%s]", context), e);
         }
 
-        if(automaticReconnect && shouldRecover){
+        if(managedConnectionThread != null && shouldRecover){
             try {
-                synchronized (recoveryThread){
-                    recoveryThread.notify();
+                synchronized (managedConnectionThread){
+                    managedConnectionThread.notify();
                 }
             } catch(Exception e){
                 logger.log(Level.WARNING, String.format("error encountered when trying to recover from unsolicited disconnect [%s]", context, e));

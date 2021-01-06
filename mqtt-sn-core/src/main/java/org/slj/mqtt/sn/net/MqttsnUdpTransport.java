@@ -108,6 +108,7 @@ public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
         super.stop();
         running = false;
         socket = null;
+        broadcastSocket = null;
         receiverThread = null;
         broadcastThread = null;
     }

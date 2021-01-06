@@ -26,6 +26,7 @@ package org.slj.mqtt.sn.spi;
 
 import org.slj.mqtt.sn.model.*;
 
+import java.util.Date;
 import java.util.Optional;
 
 /**
@@ -125,4 +126,12 @@ public interface IMqttsnMessageStateService<T extends IMqttsnRuntimeRegistry> ex
      * @throws MqttsnException - an error has occurred
      */
     void scheduleFlush(IMqttsnContext context) throws MqttsnException ;
+
+    /**
+     * Tracks the point at which the last message was SENT to the context
+     * @param context - The context to which the message was sent
+     * @return Date representing the point at which the last message was SENT to the context
+     * @throws MqttsnException
+     */
+    Date getMessageLastSentToContext(IMqttsnContext context) throws MqttsnException ;
 }
