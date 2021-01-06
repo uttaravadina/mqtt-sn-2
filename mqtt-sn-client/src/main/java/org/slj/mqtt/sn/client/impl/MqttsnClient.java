@@ -338,7 +338,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         disconnect(true);
     }
 
-    protected void disconnect(boolean sendDisconnect)  throws MqttsnException {
+    private void disconnect(boolean sendDisconnect)  throws MqttsnException {
         try {
             IMqttsnSessionState state = checkSession(false);
             synchronized (this) {
@@ -366,19 +366,19 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         }
     }
 
-    protected void stopProcessing() throws MqttsnException {
+    private final void stopProcessing() throws MqttsnException {
         //-- ensure we stop message queue sending when we are not connected
         callShutdown(registry.getMessageHandler());
         callShutdown(registry.getMessageStateService());
     }
 
-    protected void startProcessing() throws MqttsnException {
+    private final void startProcessing() throws MqttsnException {
         callStartup(registry.getMessageStateService());
         callStartup(registry.getMessageHandler());
         registry.getMessageStateService().scheduleFlush(state.getContext());
     }
 
-    protected void clearState(IMqttsnContext context, boolean deepClear) throws MqttsnException {
+    private void clearState(IMqttsnContext context, boolean deepClear) throws MqttsnException {
         //-- unsolicited disconnect notify to the application
         registry.getMessageStateService().clearInflight(context);
         registry.getTopicRegistry().clear(context,
@@ -409,7 +409,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         }
     }
 
-    protected Date getMessageExpiry(){
+    private Date getMessageExpiry(){
         Calendar c = Calendar.getInstance();
         c.setTime(new Date());
         c.add(Calendar.HOUR, +1);
@@ -423,7 +423,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         return registry.getOptions().getContextId();
     }
 
-    protected void stateChangeResponseCheck(IMqttsnSessionState sessionState, MqttsnWaitToken token, Optional<IMqttsnMessage> response, MqttsnClientState newState)
+    private void stateChangeResponseCheck(IMqttsnSessionState sessionState, MqttsnWaitToken token, Optional<IMqttsnMessage> response, MqttsnClientState newState)
             throws MqttsnExpectationFailedException {
         try {
             MqttsnUtils.responseCheck(token, response);
@@ -437,14 +437,14 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         }
     }
 
-    protected MqttsnSessionState checkSession(boolean validateConnected) throws MqttsnException {
+    private MqttsnSessionState checkSession(boolean validateConnected) throws MqttsnException {
         MqttsnSessionState state = getOrDiscoverGatewaySession();
         if(validateConnected && state.getClientState() != MqttsnClientState.CONNECTED)
             throw new MqttsnRuntimeException("client not connected");
         return state;
     }
 
-    protected MqttsnSessionState getOrDiscoverGatewaySession() throws MqttsnException {
+    private MqttsnSessionState getOrDiscoverGatewaySession() throws MqttsnException {
         if(state == null){
             synchronized (this){
                 if(state == null){
@@ -468,7 +468,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         return state;
     }
 
-    protected void activateManagedConnection(){
+    private void activateManagedConnection(){
         if(managedConnectionThread == null){
             managedConnectionThread = new Thread(() -> {
                 while(true){
