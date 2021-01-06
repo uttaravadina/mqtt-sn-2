@@ -60,13 +60,13 @@ public interface IMqttsnClient extends Closeable {
 
 
     /**
-     * Subscribe the topic using the most appropriate topic scheme. This will automatically select th use of a PREDEFINED or SHORT
-     * according to your configuration. If no PREDEFINED or SHORT topic is available, a new registration will be places in your
-     * topic registry transparently for receiving the messages.
+     * Subscribe the topic using the most appropriate topic scheme. This will automatically select the use of a PREDEFINED or SHORT
+     * according to your configuration. If no PREDEFINED or SHORT topic is available, a new NORMAL registration will be placed in your
+     * topic registry transparently.
      *
      * @param topicName - The path to subscribe to
      * @param QoS - The quality of service of the subscription
-     * @throws MqttsnException
+     * @throws MqttsnException - An error occurred
      */
     void subscribe(String topicName, int QoS) throws MqttsnException;
 
@@ -76,7 +76,7 @@ public interface IMqttsnClient extends Closeable {
      * topic registry transparently for receiving the messages.
      *
      * @param topicName - The path to unsubscribe to
-     * @throws MqttsnException
+     * @throws MqttsnException -  An error occurred
      */
     void unsubscribe(String topicName) throws MqttsnException;
 
@@ -88,35 +88,35 @@ public interface IMqttsnClient extends Closeable {
      * @param duration - time in seconds for the sleep period to last
      * @param wakeAfterInterval - time in seconds that the device will wake up to check for messages, before going back to sleep
      * @param maxWaitTime - time during WAKING that the device will wait for a PINGRESP response from the gateway before erroring
-     * @param connectOnFinish - when the DURATION period has elapsed, should the device transition into the ACTIVE mode by issuing a soft CONNECT or DISCONNECT
-     * @throws MqttsnException
+     * @param connectOnFinish - when the DURATION period has elapsed, should the device transition into the ACTIVE mode by issuing a soft CONNECT or alternatively, DISCONNECT
+     * @throws MqttsnException -  An error occurred
      */
     void supervisedSleepWithWake(int duration, int wakeAfterInterval, int maxWaitTime, boolean connectOnFinish)  throws MqttsnException;
 
     /**
      * Put the device into the SLEEP mode for the duration in seconds. NOTE: this is a non-supervized sleep, which means the application
-     * is resonsible for issuing PING and CONNECTS from this mode
+     * is responsible for issuing PINGREQ and CONNECTS from this mode
      * @param duration - Time in seconds to put the device to sleep.
-     * @throws MqttsnException
+     * @throws MqttsnException -  An error occurred
      */
     void sleep(int duration) throws MqttsnException;
 
     /**
      * Unsupervised Wake the device up by issuing a PINGREQ from SLEEP state. The maxWait time will be taken from the core client configuration
      * supplied during setup.
-     * @throws MqttsnException
+     * @throws MqttsnException -  An error occurred
      */
     void wake()  throws MqttsnException;
 
     /**
      * Unsupervised Wake the device up by issuing a PINGREQ from SLEEP state.
      * @param waitTime - Time in MILLISECONDS to wait for a PINGRESP after the AWAKE period
-     * @throws MqttsnException
+     * @throws MqttsnException -  An error occurred
      */
     void wake(int waitTime)  throws MqttsnException;
 
     /**
-     * DISCONNECT from the gateway. Close down any local queues.
+     * DISCONNECT from the gateway. Closes down any local queues and active processing
      */
     void disconnect() throws MqttsnException;
 

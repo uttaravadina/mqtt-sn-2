@@ -330,7 +330,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
                 stateChangeResponseCheck(state, token, response, MqttsnClientState.ASLEEP);
                 stopProcessing();
             } else {
-                throw new MqttsnExpectationFailedException("client connect wake from a non-connected state");
+                throw new MqttsnExpectationFailedException("client cannot wake from a non-sleep state");
             }
         }
     }
