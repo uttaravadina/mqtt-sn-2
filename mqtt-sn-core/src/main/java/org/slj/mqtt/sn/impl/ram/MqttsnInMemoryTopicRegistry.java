@@ -97,7 +97,8 @@ public class MqttsnInMemoryTopicRegistry<T extends IMqttsnRuntimeRegistry>
 
     @Override
     protected Map<String, Integer> getPredefinedTopics(IMqttsnContext context) {
-        return registry.getOptions().getPredefinedTopics();
+        Map<String, Integer> m = registry.getOptions().getPredefinedTopics();
+        return m == null ? Collections.emptyMap() : m;
     }
 
     @Override

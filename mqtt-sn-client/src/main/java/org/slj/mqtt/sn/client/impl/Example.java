@@ -91,7 +91,7 @@ public class Example {
             client.subscribe("my/example/topic/1", 2);
 
             //-- issue a publish command - the method will queue the message for sending and return immediately
-            client.publish("my/example/topic/1", 1, MqttsnUtils.arrayOf(128, (byte) 0x01));
+            client.publish("my/example/topic/1", 1,  "hello world".getBytes());
 
             //-- wait for the sent message to be looped back before closing
             latch.await(30, TimeUnit.SECONDS);
