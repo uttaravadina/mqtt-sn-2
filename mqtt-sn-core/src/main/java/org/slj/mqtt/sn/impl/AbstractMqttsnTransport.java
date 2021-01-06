@@ -48,7 +48,6 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
     @Override
     public void start(U runtime) throws MqttsnException {
         super.start(runtime);
-        logger.log(Level.INFO, String.format("starting udp with options [%s]", System.identityHashCode(runtime.getOptions())));
         if(runtime.getOptions().getThreadHandoffFromTransport()){
             int threadCount = runtime.getOptions().getHandoffThreadCount();
             executorService =
