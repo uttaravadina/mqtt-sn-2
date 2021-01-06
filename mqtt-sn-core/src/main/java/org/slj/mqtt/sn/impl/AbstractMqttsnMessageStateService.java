@@ -480,8 +480,8 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                     }
                 }
             }
-
         }
+        expedite();
     }
 
     @Override

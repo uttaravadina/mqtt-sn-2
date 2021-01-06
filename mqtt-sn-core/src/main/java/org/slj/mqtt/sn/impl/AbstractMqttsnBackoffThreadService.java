@@ -37,6 +37,7 @@ public abstract class AbstractMqttsnBackoffThreadService<T extends IMqttsnRuntim
     static final int MAX_BACKOFF_INCR = 10;
     private Thread t;
     private volatile boolean stopped = false;
+    private Object monitor = new Object();
 
     @Override
     public synchronized void start(T runtime) throws MqttsnException {
@@ -46,7 +47,6 @@ public abstract class AbstractMqttsnBackoffThreadService<T extends IMqttsnRuntim
 
     protected void initThread(){
         if(t == null){
-            stopped = false;
             String threadName = String.format("mqtt-sn-deamon-%s", getClass().getSimpleName().toLowerCase());
             t = new Thread(this, threadName);
             t.setPriority(Thread.MIN_PRIORITY);
@@ -64,7 +64,6 @@ public abstract class AbstractMqttsnBackoffThreadService<T extends IMqttsnRuntim
     @Override
     public void stop() throws MqttsnException {
         super.stop();
-        stopped = true;
         t = null;
     }
 
@@ -79,7 +78,7 @@ public abstract class AbstractMqttsnBackoffThreadService<T extends IMqttsnRuntim
         }
 
         logger.log(Level.INFO, String.format("starting thread [%s] processing", Thread.currentThread().getName()));
-        while(!stopped &&
+        while(running &&
                 !Thread.currentThread().isInterrupted()){
             try {
                 if(doWork()){
@@ -88,9 +87,12 @@ public abstract class AbstractMqttsnBackoffThreadService<T extends IMqttsnRuntim
                 }
                 long backoff = (long) Math.pow(2, Math.min(count++, MAX_BACKOFF_INCR)) * getBackoffFactor();
                 if(logger.isLoggable(Level.FINE)){
-                    logger.log(Level.FINE, String.format("processing [%s] on count [%s] sleeping for [%s]", Thread.currentThread().getName(), count, backoff));
+                    logger.log(Level.FINE,
+                            String.format("processing [%s] on count [%s] sleeping for [%s]", Thread.currentThread().getName(), count, backoff));
                 }
-                Thread.sleep(backoff);
+                synchronized (monitor){
+                    monitor.wait(backoff);
+                }
             } catch(InterruptedException e){
                 Thread.currentThread().interrupt();
             }
@@ -107,4 +109,10 @@ public abstract class AbstractMqttsnBackoffThreadService<T extends IMqttsnRuntim
      * WARNING, throwing an unchecked exception from this method will cause the service to shutdown
      */
     protected abstract boolean doWork();
+
+    protected void expedite(){
+        synchronized (monitor){
+            monitor.notifyAll();
+        }
+    }
 }
