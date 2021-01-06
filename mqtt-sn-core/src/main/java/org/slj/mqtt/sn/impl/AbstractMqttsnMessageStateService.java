@@ -124,10 +124,17 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
 
     protected MqttsnWaitToken sendMessageInternal(IMqttsnContext context, IMqttsnMessage message, QueuedPublishMessage queuedPublishMessage) throws MqttsnException {
 
+        if(!allowedToSend(context, message)){
+            logger.log(Level.WARNING,
+                    String.format("allowed to send [%s] check failed [%s]",
+                            message, context));
+            throw new MqttsnExpectationFailedException("allowed to send check failed");
+        }
+
         InflightMessage.DIRECTION direction = registry.getMessageHandler().isPartOfOriginatingMessage(message) ?
                 InflightMessage.DIRECTION.SENDING : InflightMessage.DIRECTION.RECEIVING;
-        int count = countInflight(context, direction);
 
+        int count = countInflight(context, direction);
         if(count > 0){
             logger.log(Level.WARNING,
                     String.format("presently unable to send [%s],[%s] to [%s], max inflight reached for direction [%s] [%s] -> [%s]",
@@ -147,13 +154,6 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
             } else {
                 throw new MqttsnExpectationFailedException("max number of inflight messages reached");
             }
-        }
-
-        if(!allowedToSend(context, message)){
-            logger.log(Level.WARNING,
-                    String.format("allowed to send [%s] check failed [%s]",
-                            message, context));
-            throw new MqttsnExpectationFailedException("allowed to send check failed");
         }
 
         try {
