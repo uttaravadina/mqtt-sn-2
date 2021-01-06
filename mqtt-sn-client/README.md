@@ -20,7 +20,7 @@ public class Example {
                 //-- configure your clientId
                         withContextId("clientId1").
                 //-- specify and predefined topic Ids that the gateway will know about
-                        withPredefinedTopic("my/example/topic/1", 1);
+                        withPredefinedTopic("my/predefined/example/topic/1", 1);
 
         //-- using a default configuration for the controllers will just work out of the box, alternatively
         //-- you can supply your own implementations to change underlying storage or business logic as is required
@@ -59,12 +59,12 @@ public class Example {
             client.subscribe("my/example/topic/1", 2);
 
             //-- issue a publish command - the method will queue the message for sending and return immediately
-            client.publish("my/example/topic/1", 1, MqttsnUtils.arrayOf(128, (byte) 0x01));
+            client.publish("my/example/topic/1", 1,  "hello world".getBytes());
 
             //-- wait for the sent message to be looped back before closing
             latch.await(30, TimeUnit.SECONDS);
 
-            //-- issue a subscribe command - the method will block until completion
+            //-- issue a disconnect command - the method will block until completion
             client.disconnect();
         }
     }

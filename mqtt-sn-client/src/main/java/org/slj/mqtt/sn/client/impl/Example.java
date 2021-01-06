@@ -96,7 +96,7 @@ public class Example {
             //-- wait for the sent message to be looped back before closing
             latch.await(30, TimeUnit.SECONDS);
 
-            //-- issue a subscribe command - the method will block until completion
+            //-- issue a disconnect command - the method will block until completion
             client.disconnect();
         }
     }
