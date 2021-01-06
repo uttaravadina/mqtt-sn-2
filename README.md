@@ -68,7 +68,7 @@ maxWait | 10000 | int | Time in milliseconds to wait for a confirmation message 
 maxTopicLength | 1024 | int | Maximum number of characters allowed in a topic including wildcard and separator characters.
 threadHandoffFromTransport | true | boolean | Should the transport layer delegate to and from the handler layer using a thread hand-off. **NB: Depends on your transport implementation as to whether you should block.**
 handoffThreadCount | 5 | int | How many threads are used to process messages recieved from the transport layer 
-discoveryEnabled | true | boolean | When discovery is enabled the client will listen for broadcast messages from local gateways and add them to its network registry as it finds them.
+discoveryEnabled | false | boolean | When discovery is enabled the client will listen for broadcast messages from local gateways and add them to its network registry as it finds them.
 maxTopicsInRegistry | 128 | int | Max number of topics which can reside in the CLIENT registry. This does NOT include predefined alias's.
 msgIdStartAt | 1 | int (max. 65535) | Starting number for message Ids sent from the client to the gateways (each gateway has a unique count).
 aliasStartAt | 1 | int (max. 65535) | Starting number for alias's used to store topic values (NB: only applicable to gateways).
