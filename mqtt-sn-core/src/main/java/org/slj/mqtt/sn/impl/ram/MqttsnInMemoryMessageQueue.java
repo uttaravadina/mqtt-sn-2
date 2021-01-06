@@ -57,7 +57,6 @@ public class MqttsnInMemoryMessageQueue<T extends IMqttsnRuntimeRegistry>
         Queue<QueuedPublishMessage> queue = getQueue(context);
         if(size(context) >= getMaxQueueSize()){
             logger.log(Level.WARNING, String.format("max queue size reached for client [%s] >= [%s]", context, queue.size()));
-//            throw new MqttsnExpectationFailedException("max queue size reached for client, cannot queue");
             return false;
         }
         boolean b;
@@ -76,7 +75,9 @@ public class MqttsnInMemoryMessageQueue<T extends IMqttsnRuntimeRegistry>
                 queue.clear();
             }
             queues.remove(context);
-            logger.log(Level.INFO, String.format("clearing queue for [%s]", context));
+            if(logger.isLoggable(Level.FINE)){
+                logger.log(Level.FINE, String.format("clearing queue for [%s]", context));
+            }
         }
     }
 
@@ -97,7 +98,9 @@ public class MqttsnInMemoryMessageQueue<T extends IMqttsnRuntimeRegistry>
         Queue<QueuedPublishMessage> queue = getQueue(context);
         synchronized (queue){
             QueuedPublishMessage p = queue.poll();
-            logger.log(Level.INFO, String.format("poll form queue for [%s], queue size is [%s]", context, queue.size()));
+            if(logger.isLoggable(Level.FINE)){
+                logger.log(Level.FINE, String.format("poll form queue for [%s], queue size is [%s]", context, queue.size()));
+            }
             return p;
         }
     }

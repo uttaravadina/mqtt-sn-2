@@ -43,53 +43,10 @@ import java.util.logging.Level;
 public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
         extends MqttsnService<U> implements IMqttsnTransport {
 
-    protected ExecutorService executorService;
-
-    @Override
-    public void start(U runtime) throws MqttsnException {
-        super.start(runtime);
-        if(runtime.getOptions().getThreadHandoffFromTransport()){
-            int threadCount = runtime.getOptions().getHandoffThreadCount();
-            executorService =
-                    Executors.newFixedThreadPool(threadCount, new ThreadFactory() {
-                        int count = 0;
-                        ThreadGroup tg = new ThreadGroup("mqtt-sn-handoff");
-
-                        @Override
-                        public Thread newThread(Runnable r) {
-                            Thread t = new Thread(tg, r, "mqtt-sn-handoff-thread-" + ++count);
-                            t.setPriority(Thread.MIN_PRIORITY + 1);
-                            t.setDaemon(true);
-                            return t;
-                        }
-                    });
-             logger.log(Level.INFO, String.format("starting transport with [%s] handoff threads", threadCount));
-        }
-    }
-
-    @Override
-    public void stop() throws MqttsnException {
-        super.stop();
-        if(registry.getOptions().getThreadHandoffFromTransport()){
-            try {
-                if(!executorService.isShutdown()){
-                    executorService.shutdown();
-                }
-                executorService.awaitTermination(30, TimeUnit.SECONDS);
-            } catch(InterruptedException e){
-                Thread.currentThread().interrupt();
-            } finally {
-                if(!executorService.isTerminated()){
-                    executorService.shutdownNow();
-                }
-            }
-        }
-    }
-
     @Override
     public void receiveFromTransport(INetworkContext context, ByteBuffer buffer) {
         if(registry.getOptions().getThreadHandoffFromTransport()){
-            executorService.submit(
+            getRegistry().getRuntime().async(
                     () -> receiveFromTransportInternal(context, buffer));
         } else {
             receiveFromTransportInternal(context, buffer);
@@ -132,7 +89,7 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
     @Override
     public void writeToTransport(INetworkContext context, IMqttsnMessage message) {
         if(registry.getOptions().getThreadHandoffFromTransport()){
-            executorService.submit(
+            getRegistry().getRuntime().async(
                     () -> writeToTransportInternal(context, message, true));
         } else {
             writeToTransportInternal(context, message, true);

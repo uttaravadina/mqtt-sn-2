@@ -32,8 +32,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.Condition;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -48,6 +47,7 @@ public abstract class AbstractMqttsnRuntime {
     protected List<IMqttsnPublishSentListener> sentListeners
             = Collections.synchronizedList(new ArrayList<>());
 
+    protected ExecutorService executorService;
     protected CountDownLatch startupLatch, runtimeLatch;
     protected volatile boolean running = false;
     protected long startedAt;
@@ -58,6 +58,21 @@ public abstract class AbstractMqttsnRuntime {
 
     public final void start(IMqttsnRuntimeRegistry reg, boolean join) throws MqttsnException {
         if(runtimeLatch == null){
+            int threadCount = reg.getOptions().getHandoffThreadCount();
+            executorService =
+                    Executors.newFixedThreadPool(threadCount, new ThreadFactory() {
+                        int count = 0;
+                        ThreadGroup tg = new ThreadGroup("mqtt-sn-worker");
+
+                        @Override
+                        public Thread newThread(Runnable r) {
+                            Thread t = new Thread(tg, r, "mqtt-sn-worker-thread-" + ++count);
+                            t.setPriority(Thread.MIN_PRIORITY + 1);
+                            t.setDaemon(true);
+                            return t;
+                        }
+                    });
+
             startedAt = System.currentTimeMillis();
             setupEnvironment();
             registry = reg;
@@ -86,10 +101,24 @@ public abstract class AbstractMqttsnRuntime {
     public final void stop() throws MqttsnException {
         if(running){
             logger.log(Level.INFO, "stopping mqttsn-environment..");
+
             stopServices(registry);
             running = false;
             receivedListeners.clear();
             sentListeners.clear();
+
+            try {
+                if(!executorService.isShutdown()){
+                    executorService.shutdown();
+                }
+                executorService.awaitTermination(30, TimeUnit.SECONDS);
+            } catch(InterruptedException e){
+                Thread.currentThread().interrupt();
+            } finally {
+                if (!executorService.isTerminated()) {
+                    executorService.shutdownNow();
+                }
+            }
         }
     }
 
@@ -177,4 +206,12 @@ public abstract class AbstractMqttsnRuntime {
      * if not, the exception is reported into the transport layer
      */
     public abstract boolean handleLocalDisconnectError(IMqttsnContext context, Throwable t);
+
+    /**
+     * Submit work for the main worker thread group, this could be
+     * transport operations or confirmations etc.
+     */
+    public Future<?> async(Runnable r){
+        return executorService.submit(r);
+    }
 }

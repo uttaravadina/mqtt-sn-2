@@ -84,7 +84,7 @@ public abstract class AbstractMqttsnBackoffThreadService<T extends IMqttsnRuntim
             try {
                 if(doWork()){
                     //when the execute returns true, reset the backoff
-                    count = 1;
+                    count = 0;
                 }
                 long backoff = (long) Math.pow(2, Math.min(count++, MAX_BACKOFF_INCR)) * getBackoffFactor();
                 if(logger.isLoggable(Level.FINE)){

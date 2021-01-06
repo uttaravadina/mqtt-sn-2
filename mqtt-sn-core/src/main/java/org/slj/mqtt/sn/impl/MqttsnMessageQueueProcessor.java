@@ -122,7 +122,7 @@ public class MqttsnMessageQueueProcessor<T extends IMqttsnRuntimeRegistry>
                     return RESULT.REPROCESS;
                 }
             } else {
-                return clientMode ? RESULT.BACKOFF_PROCESS : RESULT.REMOVE_PROCESS;
+                return clientMode ? RESULT.REPROCESS : RESULT.REMOVE_PROCESS;
             }
         }
     }

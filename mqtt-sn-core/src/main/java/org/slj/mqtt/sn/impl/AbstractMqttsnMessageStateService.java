@@ -17,7 +17,6 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
 
     protected Map<IMqttsnContext, Date> lastMessageSent;
     protected Map<LastIdContext, Integer> lastUsedMsgIds;
-    protected Map<IMqttsnContext, List<CommitOperation>> uncommittedMessages;
     protected Set<FlushQueueOperation> flushOperations;
 
     public AbstractMqttsnMessageStateService(boolean clientMode) {
@@ -27,7 +26,6 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
     @Override
     public void start(T runtime) throws MqttsnException {
         super.start(runtime);
-        uncommittedMessages = Collections.synchronizedMap(new HashMap());
         flushOperations = Collections.synchronizedSet(new HashSet());
         lastUsedMsgIds = Collections.synchronizedMap(new HashMap());
         lastMessageSent = Collections.synchronizedMap(new HashMap());
@@ -35,42 +33,23 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
 
     @Override
     protected boolean doWork() {
-        //-- process the messages that have been confirmed inbound on a non application thread
-        Iterator<IMqttsnContext> itr = uncommittedMessages.keySet().iterator();
-        synchronized (uncommittedMessages) {
-            while (itr.hasNext()) {
-                IMqttsnContext context = itr.next();
-                List<CommitOperation> msgs = uncommittedMessages.get(context);
-                Iterator<CommitOperation> msgItr = msgs.iterator();
-                synchronized (msgs){
-                    while(msgItr.hasNext()){
-                        CommitOperation operation = msgItr.next();
-                        try {
-                            confirmPublish(operation);
-                        }
-                        catch(Exception e){
-                            logger.log(Level.SEVERE, "error committing messages to application ", e);
-                        }
-                        finally {
-                            msgItr.remove();
-                        }
-                    }
-                }
-            }
-        }
-
-        //-- only use the flush operations when in gateway mode as tje client uses its own thread for this
+        //-- only use the flush operations when in gateway mode as the client uses its own thread for this
         Iterator<FlushQueueOperation> flushItr = flushOperations.iterator();
         synchronized (flushOperations) {
             while (flushItr.hasNext()) {
                 FlushQueueOperation operation = flushItr.next();
-                long delta = (long) Math.pow(2, Math.min(operation.count, 5)) * 250;
-                boolean process = operation.timestamp + delta + getRegistry().getOptions().getMinFlushTime() < System.currentTimeMillis();
-                if(!process) continue;
+                long delta = (long) Math.pow(1.7, Math.min(operation.count, 8)) * 25;
+                long processAfter = operation.timestamp + Math.max(delta, getRegistry().getOptions().getMinFlushTime());
+                boolean process = processAfter <= System.currentTimeMillis();
+                if(!process){
+                    logger.log(Level.FINE, String.format("back off [%s] for [%s] or [%s] -> missed by [%s]",
+                            operation.count, delta, getRegistry().getOptions().getMinFlushTime(), processAfter - System.currentTimeMillis()));
+                    continue;
+                }
+
                 try {
                     IMqttsnMessageQueueProcessor.RESULT result
                             = registry.getQueueProcessor().process(operation.context);
-                    operation.timestamp = System.currentTimeMillis();
 
                     switch(result){
                         case REMOVE_PROCESS:
@@ -84,6 +63,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                         case BACKOFF_PROCESS:
                             //knock the time on for another attempt
                             operation.count++;
+                            operation.timestamp = System.currentTimeMillis();
                             break;
                     }
 
@@ -180,7 +160,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                 CommitOperation op = CommitOperation.outbound(context, queuedPublishMessage.getMessageId(),
                         queuedPublishMessage.getTopicPath(), queuedPublishMessage.getGrantedQoS(),
                         ((MqttsnPublish) message).getData());
-                getUncommittedMessages(context).add(op);
+                confirmPublish(op);
             }
 
             return token;
@@ -285,7 +265,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                                     getTopicPathFromPublish(context, (MqttsnPublish) confirmedMessage),
                                     ((MqttsnPublish) confirmedMessage).getQoS(),
                                     ((MqttsnPublish) confirmedMessage).getData());
-                            getUncommittedMessages(context).add(op);
+                            confirmPublish(op);
                         }
 
                         //outbound qos 1
@@ -294,7 +274,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                             CommitOperation op = CommitOperation.outbound(context, rim.getQueuedPublishMessage().getMessageId(),
                                     rim.getQueuedPublishMessage().getTopicPath(), rim.getQueuedPublishMessage().getGrantedQoS(),
                                     ((MqttsnPublish) confirmedMessage).getData());
-                            getUncommittedMessages(context).add(op);
+                            confirmPublish(op);
                         }
                     }
                     return confirmedMessage;
@@ -310,7 +290,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                     CommitOperation op = CommitOperation.outbound(context, rim.getQueuedPublishMessage().getMessageId(),
                             rim.getQueuedPublishMessage().getTopicPath(), rim.getQueuedPublishMessage().getGrantedQoS(),
                             ((MqttsnPublish) inflight.getMessage()).getData());
-                    getUncommittedMessages(context).add(op);
+                    confirmPublish(op);
                 }
 
                 return null;
@@ -337,25 +317,25 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                             getTopicPathFromPublish(context, pub),
                             ((MqttsnPublish) message).getQoS(),
                             ((MqttsnPublish) message).getData());
-                    getUncommittedMessages(context).add(op);
+                    confirmPublish(op);
                 }
             }
             return null;
         }
     }
 
-    protected void confirmPublish(CommitOperation operation) {
-        try {
-            //commit messages to runtime if its a publish
+    /**
+     * Confirmation delivery to the application takes place on the worker thread group
+     */
+    protected void confirmPublish(final CommitOperation operation) {
+        getRegistry().getRuntime().async(() -> {
             IMqttsnContext context = operation.context;
             if(operation.inbound){
                 registry.getRuntime().messageReceived(context, operation.topicPath, operation.QoS, operation.payload);
             } else {
                 registry.getRuntime().messageSent(context, operation.messageId, operation.topicPath, operation.QoS, operation.payload);
             }
-        } catch(Exception e){
-            logger.log(Level.SEVERE, String.format("error committing message to application;"), e);
-        }
+        });
     }
 
     protected MqttsnWaitToken markInflight(IMqttsnContext context, IMqttsnMessage message, QueuedPublishMessage queuedPublishMessage)
@@ -482,19 +462,6 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         return count;
     }
 
-    protected List<CommitOperation> getUncommittedMessages(IMqttsnContext context){
-        List<CommitOperation> list = uncommittedMessages.get(context);
-        if(list == null){
-            synchronized (this){
-                if((list = uncommittedMessages.get(context)) == null){
-                    list = new ArrayList();
-                    uncommittedMessages.put(context, list);
-                }
-            }
-        }
-        return list;
-    }
-
     @Override
     public void scheduleFlush(IMqttsnContext context) throws MqttsnException {
         if(flushOperations.add(new FlushQueueOperation(context, System.currentTimeMillis()))){
@@ -502,7 +469,18 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                 logger.log(Level.FINE, String.format("added flush for [%s]", context));
             }
         } else {
-            //TODO we may want to unbackoff the code when a flush is scheduled
+            //TODO this is nasty - we need a fast lookup now weve introduced expediting processor
+            Iterator<FlushQueueOperation> itr = flushOperations.iterator();
+            while(itr.hasNext()){
+                FlushQueueOperation op = itr.next();
+                if(op.context.equals(context)){
+                    op.resetCount();
+                    if(logger.isLoggable(Level.INFO)){
+                        logger.log(Level.INFO, String.format("reset flush backoff for [%s]", context));
+                    }
+                }
+            }
+
         }
     }
 
@@ -569,6 +547,10 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         public FlushQueueOperation(IMqttsnContext context, long timestamp){
             this.context = context;
             this.timestamp = timestamp;
+        }
+
+        public void resetCount(){
+            count = 0;
         }
 
         @Override
