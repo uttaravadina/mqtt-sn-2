@@ -88,7 +88,7 @@ public abstract class AbstractMqttsnBackoffThreadService<T extends IMqttsnRuntim
                 long backoff = (long) Math.pow(2, Math.min(count++, MAX_BACKOFF_INCR)) * getBackoffFactor();
                 if(logger.isLoggable(Level.FINE)){
                     logger.log(Level.FINE,
-                            String.format("processing [%s] on count [%s] sleeping for [%s]", Thread.currentThread().getName(), count, backoff));
+                            String.format("processing [%s] on count [%s] waiting for [%s]", Thread.currentThread().getName(), count, backoff));
                 }
                 synchronized (monitor){
                     monitor.wait(backoff);
