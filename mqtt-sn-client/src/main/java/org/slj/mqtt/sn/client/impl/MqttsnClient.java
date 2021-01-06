@@ -135,8 +135,8 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         if(!MqttsnUtils.validUInt16(keepAlive)){
             throw new MqttsnExpectationFailedException("invalid keepAlive supplied");
         }
-        keepAlive = keepAlive;
-        cleanSession = cleanSession;
+        this.keepAlive = keepAlive;
+        this.cleanSession = cleanSession;
         IMqttsnSessionState state = checkSession(false);
         synchronized (this) {
             if (state.getClientState() != MqttsnClientState.CONNECTED) {
@@ -470,14 +470,15 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
 
     protected void activateManagedConnection(){
         if(managedConnectionThread == null){
-            final long delta = Math.max(keepAlive, 60) / AUTOMATIC_PING_DIVISOR  * 1000;
             managedConnectionThread = new Thread(() -> {
                 while(true){
                     try {
                         synchronized (managedConnectionThread){
+                            long delta = Math.max(keepAlive, 60) / AUTOMATIC_PING_DIVISOR  * 1000;
                             logger.log(Level.INFO,
-                                    String.format("managed connection monitor is running at time delta [%s]...", delta));
+                                    String.format("managed connection monitor is running at time delta [%s], keepAlive [%s]...", delta, keepAlive));
                             managedConnectionThread.wait(delta);
+
                             if(running){
                                 synchronized (this){ //-- we could receive a unsolicited disconnect during passive reconnection | ping..
                                     IMqttsnSessionState state = checkSession(false);
