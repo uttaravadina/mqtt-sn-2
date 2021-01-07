@@ -79,6 +79,9 @@ predefinedTopics | Config| Map | Where a client or gateway both know a topic ali
 networkAddressEntries | Config | Map | You can prespecify known locations for gateways and clients in the network address registry. NB. The runtime will dynamically update the registry with new clients / gateways as they are discovered. In the case of clients, they are unable to connect or message until at least 1 gateway is defined in config OR discovered.
 sleepClearsRegistrations  | true | boolean | When a client enters the ASLEEP state, should the NORMAL topic registered alias's be cleared down and reestablished during the next AWAKE or ACTIVE states.
 minFlushTime  | 1000 | int | Time in milliseconds between a gateway device last receiving a message before it begins processing the client queue
+discoveryTime  | 3600 | int | The time (in seconds) a client will wait for a broadcast during CONNECT before giving up
+pingDivisor  | 4 | int | The divisor to use for the ping window, the dividend being the CONNECT keepAlive resulting in the quotient which is the time (since last sent message) each ping will be issued
+
 ### Runtime
 
 You can hook into the runtime and provide your own implementations of various components or bind in listeners to give you control or visibility onto aspects of the system.

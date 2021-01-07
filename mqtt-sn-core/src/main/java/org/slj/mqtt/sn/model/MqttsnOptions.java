@@ -128,6 +128,11 @@ public class MqttsnOptions {
      */
     public static final int DEFAULT_DISCOVERY_TIME_SECONDS = 60 * 60;
 
+    /**
+     * By default, the divisor is 4
+     */
+    public static final int DEFAULT_PING_DIVISOR = 4;
+
     private String contextId;
     private boolean threadHandoffFromTransport = DEFAULT_THREAD_HANDOFF_ENABLED;
     private boolean enableDiscovery = DEFAULT_DISCOVERY_ENABLED;
@@ -146,6 +151,7 @@ public class MqttsnOptions {
     private int maxTimeInflight = DEFAULT_MAX_TIME_INFLIGHT;
     private int searchGatewayRadius = DEFAULT_SEARCH_GATEWAY_RADIUS;
     private int discoveryTime = DEFAULT_DISCOVERY_TIME_SECONDS;
+    private int pingDivisor = DEFAULT_PING_DIVISOR;
 
     private Map<String, Integer> predefinedTopics;
     private Map<String, NetworkAddress> networkAddressEntries;
@@ -421,8 +427,10 @@ public class MqttsnOptions {
      *
      * NB: only applicable to client
      *
+     * @see {@link MqttsnOptions#DEFAULT_DISCOVERY_TIME_SECONDS}
+     *
      * @param discoveryTime - Time (in seconds) a client will wait for a broadcast during CONNECT before giving up
-     * when running as a gateway.
+     * when running as a client.
      * @return this configuration
      */
     public MqttsnOptions withDiscoveryTime(int discoveryTime){
@@ -430,6 +438,24 @@ public class MqttsnOptions {
         return this;
     }
 
+    /**
+     * The divisor to use for the ping window, the dividend being the CONNECT keepAlive resulting
+     * in the quotient which is the time (since last sent message) each ping will be issued
+     *
+     * For example a 60 seconds session with a divisor of 4 will yield 15 second pings between
+     * activity
+     *
+     * NB: only applicable to client
+     *
+     * @see {@link MqttsnOptions#DEFAULT_PING_DIVISOR}
+     *
+     * @param pingDivisor - The divisor to use for the ping window
+     * @return this configuration
+     */
+    public MqttsnOptions withPingDivisor(int pingDivisor){
+        this.pingDivisor = pingDivisor;
+        return this;
+    }
 
     /**
      * Sets the locations of known clients or gateways on the network. When running as a client and discovery is not enabled,
@@ -529,5 +555,9 @@ public class MqttsnOptions {
 
     public int getDiscoveryTime() {
         return discoveryTime;
+    }
+
+    public int getPingDivisor() {
+        return pingDivisor;
     }
 }

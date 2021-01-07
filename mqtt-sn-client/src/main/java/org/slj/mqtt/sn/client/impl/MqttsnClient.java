@@ -438,7 +438,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
                 while(true){
                     try {
                         synchronized (managedConnectionThread){
-                            long delta = Math.max(keepAlive, 60) / AUTOMATIC_PING_DIVISOR  * 1000;
+                            long delta = (Math.max(keepAlive, 60) / registry.getOptions().getPingDivisor())  * 1000;
                             logger.log(Level.INFO,
                                     String.format("managed connection monitor is running at time delta [%s], keepAlive [%s]...", delta, keepAlive));
                             managedConnectionThread.wait(delta);
