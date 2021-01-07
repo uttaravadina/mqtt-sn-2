@@ -35,8 +35,11 @@ import org.slj.mqtt.sn.wire.MqttsnWireUtils;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class MqttsnUtils {
+
+    private static Logger logger = Logger.getLogger(MqttsnUtils.class.getName());
 
     public static byte[] arrayOf(int size, byte fill){
         byte[] a = new byte[size];
@@ -52,12 +55,15 @@ public class MqttsnUtils {
         return false;
     }
 
-    public static void responseCheck(MqttsnWaitToken token, Optional<IMqttsnMessage> response) throws MqttsnExpectationFailedException{
+    public static void responseCheck(MqttsnWaitToken token, Optional<IMqttsnMessage> response)
+            throws MqttsnExpectationFailedException{
         if(response.isPresent() &&
                 response.get().isErrorMessage()){
+            logger.log(Level.WARNING, "error response received from gateway, operation failed; throw to application");
             throw new MqttsnExpectationFailedException("error response received from gateway, operation failed");
         }
         if(token.isError()){
+            logger.log(Level.WARNING, "token was marked invalid by state machine; throw to application");
             throw new MqttsnExpectationFailedException("token was marked invalid by state machine");
         }
     }

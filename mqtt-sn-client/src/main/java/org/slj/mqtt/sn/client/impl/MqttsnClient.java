@@ -339,10 +339,11 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
             IMqttsnSessionState state = checkSession(false);
             synchronized (this) {
                 if(state != null){
-                    clearState(state.getContext(),true);
                     try {
                         if (MqttsnUtils.in(state.getClientState(),
                                 MqttsnClientState.CONNECTED, MqttsnClientState.ASLEEP, MqttsnClientState.AWAKE)) {
+                            logger.log(Level.INFO, String.format("disconnecting client; sending remote disconnect ? [%s]", sendDisconnect));
+                            clearState(state.getContext(),true);
                             if(sendDisconnect){
                                 IMqttsnMessage message = registry.getMessageFactory().createDisconnect();
                                 MqttsnWaitToken token = registry.getMessageStateService().sendMessage(state.getContext(), message);

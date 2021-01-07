@@ -31,7 +31,6 @@ import org.slj.mqtt.sn.impl.MqttsnMessageQueueProcessor;
 import org.slj.mqtt.sn.impl.ram.*;
 import org.slj.mqtt.sn.model.MqttsnOptions;
 import org.slj.mqtt.sn.net.NetworkAddressRegistry;
-import org.slj.mqtt.sn.spi.MqttsnRuntimeException;
 
 public class MqttsnClientRuntimeRegistry extends AbstractMqttsnRuntimeRegistry implements IMqttsnClientRuntimeRegistry {
 

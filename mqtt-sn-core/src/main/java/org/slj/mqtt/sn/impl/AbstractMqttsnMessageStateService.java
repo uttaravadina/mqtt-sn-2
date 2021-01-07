@@ -198,8 +198,8 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
             if(token.isComplete()){
                 response = token.getResponseMessage();
                 if(logger.isLoggable(Level.INFO)){
-                    logger.log(Level.INFO, String.format("token [%s] finished ok, confirmation of message [%s] -> [%s]",
-                            MqttsnUtils.getDurationString(time), context, response == null ? "<null>" : response));
+                    logger.log(Level.INFO, String.format("token [%s] in [%s], confirmation of message [%s] -> [%s]",
+                            token.isError() ? "error" : "ok", MqttsnUtils.getDurationString(time), context, response == null ? "<null>" : response));
                 }
                 return Optional.ofNullable(response);
             } else {
@@ -242,7 +242,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                             //-- release any waits
                             token.setResponseMessage(message);
                             if (message.isErrorMessage()) token.markError();
-                            token.markComplete();
+                            else token.markComplete();
                             token.notifyAll();
                         }
                     }
@@ -250,10 +250,13 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
                     if (message.isErrorMessage()) {
 
                         logger.log(Level.WARNING,
-                                String.format("(re) queuing message [%s] in response to [%s] for [%s]",
+                                String.format("error response received [%s] in response to [%s] for [%s]",
                                         message, confirmedMessage, context));
+
                         //received an error message in response, if its requeuable do so
                         if (inflight instanceof RequeueableInflightMessage) {
+                            logger.log(Level.INFO,
+                                    String.format("message was re-queueable offer to queue [%s]", context));
                             registry.getMessageQueue().offer(context, ((RequeueableInflightMessage) inflight).getQueuedPublishMessage());
                         }
 

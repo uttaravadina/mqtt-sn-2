@@ -165,41 +165,71 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
                 }
             }
 
-            if(registry.getPermissionService() != null){
-                if(!registry.getPermissionService().allowedToSubscribe(context, topicPath)){
-                    return new SubscribeResult(Result.STATUS.ERROR, MqttsnConstants.RETURN_CODE_REJECTED_CONGESTION,
-                            "permission service denied subscription");
-                }
-                QoS = Math.min(registry.getPermissionService().allowedMaximumQoS(context, topicPath), QoS);
-            }
+            if(topicPath == null){
 
-            if(registry.getSubscriptionRegistry().subscribe(state.getContext(), topicPath, QoS)){
-                SubscribeResult result = registry.getBrokerService().subscribe(context, topicPath, QoS);
-                result.setTopicInfo(info);
-                return result;
+                //-- topic could not be found to lookup
+                return new SubscribeResult(Result.STATUS.ERROR, MqttsnConstants.RETURN_CODE_INVALID_TOPIC_ID,
+                        "no topic found by specification");
+
             } else {
-                SubscribeResult result = new SubscribeResult(Result.STATUS.NOOP);
-                result.setTopicInfo(info);
-                result.setGrantedQoS(QoS);
-                return result;
+                if(registry.getPermissionService() != null){
+                    if(!registry.getPermissionService().allowedToSubscribe(context, topicPath)){
+                        return new SubscribeResult(Result.STATUS.ERROR, MqttsnConstants.RETURN_CODE_REJECTED_CONGESTION,
+                                "permission service denied subscription");
+                    }
+                    QoS = Math.min(registry.getPermissionService().allowedMaximumQoS(context, topicPath), QoS);
+                }
+
+                if(registry.getSubscriptionRegistry().subscribe(state.getContext(), topicPath, QoS)){
+                    SubscribeResult result = registry.getBrokerService().subscribe(context, topicPath, QoS);
+                    result.setTopicInfo(info);
+                    return result;
+                } else {
+                    SubscribeResult result = new SubscribeResult(Result.STATUS.NOOP);
+                    result.setTopicInfo(info);
+                    result.setGrantedQoS(QoS);
+                    return result;
+                }
             }
         }
     }
 
     @Override
     public UnsubscribeResult unsubscribe(IMqttsnSessionState state, TopicInfo info) throws MqttsnException {
-        if(!TopicPath.isValidSubscription(info.getTopicPath(), registry.getOptions().getMaxTopicLength())){
-            return new UnsubscribeResult(Result.STATUS.ERROR, MqttsnConstants.RETURN_CODE_INVALID_TOPIC_ID,
-                    "invalid topic format");
-        }
+
         IMqttsnContext context = state.getContext();
         synchronized (context){
-            String topicPath = info.getTopicPath();
-            if(registry.getSubscriptionRegistry().unsubscribe(context, topicPath)){
-                UnsubscribeResult result = registry.getBrokerService().unsubscribe(context, topicPath);
-                return result;
+            String topicPath = null;
+            if(info.getType() == MqttsnConstants.TOPIC_TYPE.PREDEFINED){
+                topicPath = registry.getTopicRegistry().lookupPredefined(context, info.getTopicId());
+                info = new TopicInfo(MqttsnConstants.TOPIC_TYPE.PREDEFINED, info.getTopicId());
             } else {
-                return new UnsubscribeResult(Result.STATUS.NOOP);
+                topicPath = info.getTopicPath();
+                if(!TopicPath.isValidSubscription(topicPath, registry.getOptions().getMaxTopicLength())){
+                    return new UnsubscribeResult(Result.STATUS.ERROR, MqttsnConstants.RETURN_CODE_INVALID_TOPIC_ID,
+                            "invalid topic format");
+                }
+                if(!TopicPath.isWild(topicPath)){
+                    TopicInfo lookupInfo = registry.getTopicRegistry().lookup(state.getContext(), topicPath);
+                    if(lookupInfo == null || info.getType() == MqttsnConstants.TOPIC_TYPE.NORMAL){
+                        info = registry.getTopicRegistry().register(state.getContext(), topicPath);
+                    }
+                } else {
+                    info = TopicInfo.WILD;
+                }
+            }
+
+            if(topicPath == null){
+                //-- topic could not be found to lookup
+                return new UnsubscribeResult(Result.STATUS.ERROR, MqttsnConstants.RETURN_CODE_INVALID_TOPIC_ID,
+                        "no topic found by specification");
+            } else {
+                if(registry.getSubscriptionRegistry().unsubscribe(context, topicPath)){
+                    UnsubscribeResult result = registry.getBrokerService().unsubscribe(context, topicPath);
+                    return result;
+                } else {
+                    return new UnsubscribeResult(Result.STATUS.NOOP);
+                }
             }
         }
     }
@@ -282,6 +312,8 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
         }
         return null;
     }
+
+
 
     @Override
     public void receiveToSessions(String topicPath, byte[] payload, int QoS) throws MqttsnException {
