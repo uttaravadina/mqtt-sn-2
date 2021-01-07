@@ -135,6 +135,10 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         this.cleanSession = cleanSession;
         IMqttsnSessionState state = checkSession(false);
         synchronized (this) {
+            //-- its assumed regardless of being already connected or not, if connect is called
+            //-- local state sshould be discarded
+            clearState(state.getContext(), cleanSession);
+
             if (state.getClientState() != MqttsnClientState.CONNECTED) {
                 startProcessing();
                 IMqttsnMessage message = registry.getMessageFactory().createConnect(
