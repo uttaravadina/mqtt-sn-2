@@ -136,14 +136,13 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         IMqttsnSessionState state = checkSession(false);
         synchronized (this) {
             if (state.getClientState() != MqttsnClientState.CONNECTED) {
+                startProcessing();
                 IMqttsnMessage message = registry.getMessageFactory().createConnect(
                         registry.getOptions().getContextId(), keepAlive, false, cleanSession);
-
                 MqttsnWaitToken token = registry.getMessageStateService().sendMessage(state.getContext(), message);
                 Optional<IMqttsnMessage> response =
                         registry.getMessageStateService().waitForCompletion(state.getContext(), token);
                 stateChangeResponseCheck(state, token, response, MqttsnClientState.CONNECTED);
-                startProcessing();
             }
         }
     }
@@ -331,10 +330,10 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
      * @see {@link IMqttsnClient#disconnect()}
      */
     public void disconnect()  throws MqttsnException {
-        disconnect(true);
+        disconnect(true, true);
     }
 
-    private void disconnect(boolean sendDisconnect)  throws MqttsnException {
+    private void disconnect(boolean sendRemoteDisconnect, boolean deepClean)  throws MqttsnException {
         try {
             IMqttsnSessionState state = checkSession(false);
             synchronized (this) {
@@ -342,9 +341,10 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
                     try {
                         if (MqttsnUtils.in(state.getClientState(),
                                 MqttsnClientState.CONNECTED, MqttsnClientState.ASLEEP, MqttsnClientState.AWAKE)) {
-                            logger.log(Level.INFO, String.format("disconnecting client; sending remote disconnect ? [%s]", sendDisconnect));
-                            clearState(state.getContext(),true);
-                            if(sendDisconnect){
+                            logger.log(Level.INFO, String.format("disconnecting client; deepClean ? [%s], sending remote disconnect ? [%s]", deepClean, sendRemoteDisconnect));
+                            clearState(state.getContext(),deepClean);
+
+                            if(sendRemoteDisconnect){
                                 IMqttsnMessage message = registry.getMessageFactory().createDisconnect();
                                 MqttsnWaitToken token = registry.getMessageStateService().sendMessage(state.getContext(), message);
                                 Optional<IMqttsnMessage> response = registry.getMessageStateService().waitForCompletion(state.getContext(), token);
@@ -479,7 +479,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         boolean shouldRecover = MqttsnUtils.in(state.getClientState(), MqttsnClientState.CONNECTED, MqttsnClientState.ASLEEP);
         try {
             logger.log(Level.WARNING, String.format("unsolicited disconnect received from gateway [%s]", context));
-            disconnect(false);
+            disconnect(false, false);
         } catch(Exception e){
             logger.log(Level.WARNING, String.format("error handling unsolicited disconnect from gateway [%s]", context), e);
         }
@@ -524,6 +524,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
 
     private void clearState(IMqttsnContext context, boolean deepClear) throws MqttsnException {
         //-- unsolicited disconnect notify to the application
+        logger.log(Level.INFO, String.format("clearing state, deep clean ? [%s]", deepClear));
         registry.getMessageStateService().clearInflight(context);
         registry.getTopicRegistry().clear(context,
                 registry.getOptions().isSleepClearsRegistrations());
