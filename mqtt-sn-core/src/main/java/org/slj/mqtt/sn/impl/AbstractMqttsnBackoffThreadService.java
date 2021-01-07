@@ -79,21 +79,21 @@ public abstract class AbstractMqttsnBackoffThreadService<T extends IMqttsnRuntim
         logger.log(Level.INFO, String.format("starting thread [%s] processing", Thread.currentThread().getName()));
         while(running &&
                 !Thread.currentThread().isInterrupted()){
-            try {
-                if(doWork()){
-                    //when the execute returns true, reset the backoff
-                    count = 0;
-                }
-                long backoff = (long) Math.pow(2, Math.min(count++, MAX_BACKOFF_INCR)) * getBackoffFactor();
-                if(logger.isLoggable(Level.FINE)){
-                    logger.log(Level.FINE,
-                            String.format("processing [%s] on count [%s] waiting for [%s]", Thread.currentThread().getName(), count, backoff));
-                }
-                synchronized (monitor){
+            if(doWork()){
+                //when the execute returns true, reset the backoff
+                count = 0;
+            }
+            long backoff = (long) Math.pow(2, Math.min(count++, MAX_BACKOFF_INCR)) * getBackoffFactor();
+            if(logger.isLoggable(Level.FINE)){
+                logger.log(Level.FINE,
+                        String.format("processing [%s] on count [%s] waiting for [%s]", Thread.currentThread().getName(), count, backoff));
+            }
+            synchronized (monitor){
+                try {
                     monitor.wait(backoff);
+                } catch(InterruptedException e){
+                    Thread.currentThread().interrupt();
                 }
-            } catch(InterruptedException e){
-                Thread.currentThread().interrupt();
             }
         }
         logger.log(Level.INFO, String.format("stopped %s thread", Thread.currentThread().getName()));
