@@ -36,7 +36,6 @@ public abstract class AbstractMqttsnBackoffThreadService<T extends IMqttsnRuntim
     static final int DEFAULT_BACKOFF_FACTOR = 500;
     static final int MAX_BACKOFF_INCR = 10;
     private Thread t;
-    private volatile boolean stopped = false;
     private Object monitor = new Object();
 
     @Override
