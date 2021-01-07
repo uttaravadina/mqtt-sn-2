@@ -415,7 +415,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
                     try {
                         logger.log(Level.INFO, "discovering gateway...");
                         Optional<INetworkContext> optionalMqttsnContext =
-                                registry.getNetworkRegistry().waitForContext(60, TimeUnit.MINUTES);
+                                registry.getNetworkRegistry().waitForContext(registry.getOptions().getDiscoveryTime(), TimeUnit.SECONDS);
                         if(optionalMqttsnContext.isPresent()){
                             INetworkContext gatewayContext = optionalMqttsnContext.get();
                             state = new MqttsnSessionState(gatewayContext.getMqttsnContext(), MqttsnClientState.PENDING);

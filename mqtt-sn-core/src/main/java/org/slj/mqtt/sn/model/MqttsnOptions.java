@@ -123,6 +123,11 @@ public class MqttsnOptions {
      */
     public static final int DEFAULT_SEARCH_GATEWAY_RADIUS = 2;
 
+    /**
+     * By default, the time in seconds a client waits for a discovered gateway
+     */
+    public static final int DEFAULT_DISCOVERY_TIME_SECONDS = 60 * 60;
+
     private String contextId;
     private boolean threadHandoffFromTransport = DEFAULT_THREAD_HANDOFF_ENABLED;
     private boolean enableDiscovery = DEFAULT_DISCOVERY_ENABLED;
@@ -140,6 +145,7 @@ public class MqttsnOptions {
     private int maxWait = DEFAULT_MAX_WAIT;
     private int maxTimeInflight = DEFAULT_MAX_TIME_INFLIGHT;
     private int searchGatewayRadius = DEFAULT_SEARCH_GATEWAY_RADIUS;
+    private int discoveryTime = DEFAULT_DISCOVERY_TIME_SECONDS;
 
     private Map<String, Integer> predefinedTopics;
     private Map<String, NetworkAddress> networkAddressEntries;
@@ -410,6 +416,20 @@ public class MqttsnOptions {
         return this;
     }
 
+    /**
+     * The time (in seconds) a client will wait for a broadcast during CONNECT before giving up
+     *
+     * NB: only applicable to client
+     *
+     * @param discoveryTime - Time (in seconds) a client will wait for a broadcast during CONNECT before giving up
+     * when running as a gateway.
+     * @return this configuration
+     */
+    public MqttsnOptions withDiscoveryTime(int discoveryTime){
+        this.discoveryTime = discoveryTime;
+        return this;
+    }
+
 
     /**
      * Sets the locations of known clients or gateways on the network. When running as a client and discovery is not enabled,
@@ -505,5 +525,9 @@ public class MqttsnOptions {
 
     public boolean isSleepClearsRegistrations() {
         return sleepClearsRegistrations;
+    }
+
+    public int getDiscoveryTime() {
+        return discoveryTime;
     }
 }
