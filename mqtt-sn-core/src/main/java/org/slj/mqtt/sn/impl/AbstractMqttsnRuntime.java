@@ -48,16 +48,17 @@ public abstract class AbstractMqttsnRuntime {
             = Collections.synchronizedList(new ArrayList<>());
 
     protected ExecutorService executorService;
-    protected CountDownLatch startupLatch, runtimeLatch;
+    protected CountDownLatch startupLatch;
     protected volatile boolean running = false;
     protected long startedAt;
+    private final Object monitor = new Object();
 
     public final void start(IMqttsnRuntimeRegistry reg) throws MqttsnException {
         start(reg, false);
     }
 
     public final void start(IMqttsnRuntimeRegistry reg, boolean join) throws MqttsnException {
-        if(runtimeLatch == null){
+        if(!running){
             int threadCount = reg.getOptions().getHandoffThreadCount();
             executorService =
                     Executors.newFixedThreadPool(threadCount, new ThreadFactory() {
@@ -72,7 +73,6 @@ public abstract class AbstractMqttsnRuntime {
                             return t;
                         }
                     });
-
             startedAt = System.currentTimeMillis();
             setupEnvironment();
             registry = reg;
@@ -87,11 +87,13 @@ public abstract class AbstractMqttsnRuntime {
             logger.log(Level.INFO, String.format("mqttsn-environment started successfully in [%s]", System.currentTimeMillis() - startedAt));
             if(join){
                 while(running){
-                    try {
-                        Thread.sleep(1000);
-                    } catch(InterruptedException e){
-                        Thread.currentThread().interrupt();
-                        throw new MqttsnException(e);
+                    synchronized (monitor){
+                        try {
+                            monitor.wait();
+                        } catch(InterruptedException e){
+                            Thread.currentThread().interrupt();
+                            throw new MqttsnException(e);
+                        }
                     }
                 }
             }
@@ -101,12 +103,10 @@ public abstract class AbstractMqttsnRuntime {
     public final void stop() throws MqttsnException {
         if(running){
             logger.log(Level.INFO, "stopping mqttsn-environment..");
-
             stopServices(registry);
             running = false;
             receivedListeners.clear();
             sentListeners.clear();
-
             try {
                 if(!executorService.isShutdown()){
                     executorService.shutdown();
@@ -118,6 +118,9 @@ public abstract class AbstractMqttsnRuntime {
                 if (!executorService.isTerminated()) {
                     executorService.shutdownNow();
                 }
+            }
+            synchronized (monitor){
+                monitor.notifyAll();
             }
         }
     }

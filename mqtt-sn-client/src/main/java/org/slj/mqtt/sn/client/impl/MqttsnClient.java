@@ -63,7 +63,6 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     private volatile MqttsnSessionState state;
     private volatile int keepAlive;
     private volatile boolean cleanSession;
-    private static int AUTOMATIC_PING_DIVISOR = 4;
 
     private Thread managedConnectionThread = null;
     private boolean managedConnection = false;
