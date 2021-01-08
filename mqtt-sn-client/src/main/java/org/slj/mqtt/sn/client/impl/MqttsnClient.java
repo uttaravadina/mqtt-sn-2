@@ -66,6 +66,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     private static int AUTOMATIC_PING_DIVISOR = 4;
 
     private Thread managedConnectionThread = null;
+    private boolean managedConnection = false;
 
     public MqttsnClient(){
         this(false);
@@ -81,9 +82,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
      *                          is maintained (by issuing PINGs in periods of inactivity).
      */
     public MqttsnClient(boolean managedConnection){
-        if(managedConnection){
-            activateManagedConnection();
-        }
+        this.managedConnection = managedConnection;
     }
 
     @Override
@@ -108,6 +107,10 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
         callStartup(registry.getTopicRegistry());
         callStartup(registry.getQueueProcessor());
         callStartup(registry.getTransport());
+
+        if(managedConnection){
+            activateManagedConnection();
+        }
     }
 
     @Override
@@ -221,17 +224,17 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     /**
      * @see {@link IMqttsnClient#supervisedSleepWithWake(int, int, int, boolean)}
      */
-    public void supervisedSleepWithWake(int duration, int wakeAfterInterval, int maxWaitTime, boolean connectOnFinish)  throws MqttsnException {
+    public void supervisedSleepWithWake(int duration, int wakeAfterIntervalSeconds, int maxWaitTimeMillis, boolean connectOnFinish)  throws MqttsnException {
 
         if(!MqttsnUtils.validUInt16(duration)){
             throw new MqttsnExpectationFailedException("invalid duration supplied");
         }
 
-        if(!MqttsnUtils.validUInt16(wakeAfterInterval)){
+        if(!MqttsnUtils.validUInt16(wakeAfterIntervalSeconds)){
             throw new MqttsnExpectationFailedException("invalid wakeAfterInterval supplied");
         }
 
-        if(wakeAfterInterval > duration)
+        if(wakeAfterIntervalSeconds > duration)
            throw new MqttsnExpectationFailedException("sleep duration must be greater than the wake after period");
 
         long now = System.currentTimeMillis();
@@ -242,11 +245,11 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
             long period = (int) Math.min(duration, timeLeft / 1000);
             //-- sleep for the wake after period
             try {
-                long wake = Math.min(wakeAfterInterval, period);
+                long wake = Math.min(wakeAfterIntervalSeconds, period);
                 if(wake > 0){
                     logger.log(Level.INFO, String.format("waking after [%s] seconds", wake));
                     Thread.sleep(wake * 1000);
-                    wake(maxWaitTime);
+                    wake(maxWaitTimeMillis);
                 } else {
                     break;
                 }

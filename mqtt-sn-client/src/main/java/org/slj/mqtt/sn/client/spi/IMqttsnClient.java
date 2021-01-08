@@ -86,12 +86,12 @@ public interface IMqttsnClient extends Closeable {
      * the device is SLEEPing will not be processed until the device is back in the ACTIVE status.
      *
      * @param duration - time in seconds for the sleep period to last
-     * @param wakeAfterInterval - time in seconds that the device will wake up to check for messages, before going back to sleep
-     * @param maxWaitTime - time during WAKING that the device will wait for a PINGRESP response from the gateway before erroring
+     * @param wakeAfterIntervalSeconds - time in seconds that the device will wake up to check for messages, before going back to sleep
+     * @param maxWaitTimeMillis - time in millis during WAKING that the device will wait for a PINGRESP response from the gateway before erroring
      * @param connectOnFinish - when the DURATION period has elapsed, should the device transition into the ACTIVE mode by issuing a soft CONNECT or alternatively, DISCONNECT
      * @throws MqttsnException -  An error occurred
      */
-    void supervisedSleepWithWake(int duration, int wakeAfterInterval, int maxWaitTime, boolean connectOnFinish)  throws MqttsnException;
+    void supervisedSleepWithWake(int duration, int wakeAfterIntervalSeconds, int maxWaitTimeMillis, boolean connectOnFinish)  throws MqttsnException;
 
     /**
      * Put the device into the SLEEP mode for the duration in seconds. NOTE: this is a non-supervized sleep, which means the application
