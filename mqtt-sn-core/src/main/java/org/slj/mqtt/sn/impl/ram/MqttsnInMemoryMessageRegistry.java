@@ -73,7 +73,7 @@ public class MqttsnInMemoryMessageRegistry<T extends IMqttsnRuntimeRegistry>
             while(itr.hasNext()){
                 UUID id = itr.next();
                 MessageImpl m = messageLookup.get(id);
-                if(m.getExpires().before(d)){
+                if(m.getExpires() != null && m.getExpires().before(d)){
                     logger.log(Level.INFO, String.format("expiring message [%s]", id));
                     itr.remove();
                 }
