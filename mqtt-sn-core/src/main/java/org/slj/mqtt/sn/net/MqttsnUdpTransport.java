@@ -79,6 +79,12 @@ public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
                 try {
                     DatagramPacket p = new DatagramPacket(buff, buff.length);
                     localSocket.receive(p);
+                    int length = p.getLength();
+
+                    if(logger.isLoggable(Level.FINE)){
+                        logger.log(Level.FINE, "udp receive: length = " + length + ", offset = " + p.getOffset() + ", data = " + p.getData().length);
+                    }
+
                     NetworkAddress address = NetworkAddress.from(p.getPort(), p.getAddress().getHostAddress());
                     INetworkContext context = registry.getNetworkRegistry().getContext(address);
                     if(context == null){

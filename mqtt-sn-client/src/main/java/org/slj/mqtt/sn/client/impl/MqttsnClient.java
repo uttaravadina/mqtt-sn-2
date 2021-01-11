@@ -67,6 +67,13 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
     private Thread managedConnectionThread = null;
     private boolean managedConnection = false;
 
+    /**
+     * Construct a new client instance whose connection is NOT automatically managed. It will be up to the application
+     * to monitor and manage the connection lifecycle.
+     *
+     * If you wish to have the client supervise your connection (including active pings and unsolicited disconnect handling) then you
+     * should use the constructor which specifies managedConnected = true.
+     */
     public MqttsnClient(){
         this(false);
     }
