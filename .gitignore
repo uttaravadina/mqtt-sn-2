@@ -18,3 +18,4 @@ target/
 /mqtt-sn-codec/mqtt-sn-codec.iml
 /mqtt-sn-client/mqtt-sn-client.iml
 /mqtt-sn-client/src/main/java/org/slj/mqtt/sn/client/impl/TMain.java
+/mqtt-sn-client/src/main/java/org/slj/mqtt/sn/client/impl/LMain.java

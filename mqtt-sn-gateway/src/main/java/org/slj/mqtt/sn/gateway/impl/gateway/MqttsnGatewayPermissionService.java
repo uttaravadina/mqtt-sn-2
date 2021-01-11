@@ -16,7 +16,8 @@ public class MqttsnGatewayPermissionService <U extends IMqttsnRuntimeRegistry>
     public boolean allowConnect(IMqttsnContext context, String clientId) throws MqttsnException {
         Set<String> allowedClientId = ((MqttsnGatewayOptions)registry.getOptions()).getAllowedClientIds();
         if(allowedClientId != null && !allowedClientId.isEmpty()){
-            return allowedClientId.contains(clientId);
+            return allowedClientId.contains(MqttsnGatewayOptions.DEFAULT_CLIENT_ALLOWED_ALL)
+                    || allowedClientId.contains(clientId);
         }
         return false;
     }

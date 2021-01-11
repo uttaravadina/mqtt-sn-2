@@ -26,16 +26,12 @@ package org.slj.mqtt.sn.gateway.impl.gateway;
 
 import org.slj.mqtt.sn.MqttsnConstants;
 import org.slj.mqtt.sn.gateway.spi.*;
-import org.slj.mqtt.sn.gateway.spi.broker.MqttsnBrokerException;
 import org.slj.mqtt.sn.gateway.spi.gateway.IMqttsnGatewayRuntimeRegistry;
 import org.slj.mqtt.sn.gateway.spi.gateway.IMqttsnGatewaySessionRegistryService;
 import org.slj.mqtt.sn.gateway.spi.gateway.MqttsnGatewayOptions;
 import org.slj.mqtt.sn.impl.AbstractMqttsnBackoffThreadService;
-import org.slj.mqtt.sn.impl.MqttsnMessageQueueProcessor;
 import org.slj.mqtt.sn.model.*;
-import org.slj.mqtt.sn.spi.IMqttsnMessageQueueProcessor;
 import org.slj.mqtt.sn.spi.MqttsnException;
-import org.slj.mqtt.sn.utils.MqttsnUtils;
 import org.slj.mqtt.sn.utils.TopicPath;
 
 import java.util.*;
@@ -96,7 +92,7 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
     @Override
     public ConnectResult connect(IMqttsnSessionState state, String clientId, int keepAlive, boolean cleanSession) throws MqttsnException {
         ConnectResult result = null;
-        result = processAllowList(clientId);
+        result = checkSessionSize(clientId);
         if(result == null){
             synchronized (state.getContext()){
                 try {
@@ -298,13 +294,7 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
         sessionLookup.remove(context);
     }
 
-    protected ConnectResult processAllowList(String clientId){
-        Set<String> allowedClientIds = ((MqttsnGatewayOptions) registry.getOptions()).getAllowedClientIds();
-        if(allowedClientIds != null && !allowedClientIds.isEmpty()){
-            if(!allowedClientIds.contains(clientId)){
-                return new ConnectResult(Result.STATUS.ERROR, MqttsnConstants.RETURN_CODE_SERVER_UNAVAILABLE, "client id not allowed");
-            }
-        }
+    protected ConnectResult checkSessionSize(String clientId){
 
         int maxConnectedClients = ((MqttsnGatewayOptions) registry.getOptions()).getMaxConnectedClients();
         if(sessionLookup.size() >= maxConnectedClients){

@@ -31,11 +31,31 @@ import java.util.Set;
 
 public final class MqttsnGatewayOptions extends MqttsnOptions {
 
-    public static final int DEFAULT_GATEWAY_ID = 5;
-    public static final int DEFAULT_MAX_CONNECTED_CLIENTS = 10;
+    /**
+     * By default, any clientId ("*") will be allowed to connect to the gateway.
+     */
+    public static final String DEFAULT_CLIENT_ALLOWED_ALL = "*";
+
+    /**
+     * The default gatewayId used in advertise / discovery is 1
+     */
+    public static final int DEFAULT_GATEWAY_ID = 1;
+
+    /**
+     * A default gateway will allow 100 simultaneous connects to reside on the gateway
+     */
+    public static final int DEFAULT_MAX_CONNECTED_CLIENTS = 100;
+
+    /**
+     * The default advertise time is 60 seconds
+     */
     public static final int DEFAULT_GATEWAY_ADVERTISE_TIME = 60;
 
-    private Set<String> allowedClientIds = null;
+    private Set<String> allowedClientIds = new HashSet();
+    {
+        allowedClientIds.add(DEFAULT_CLIENT_ALLOWED_ALL);
+    }
+
     private int maxConnectedClients = DEFAULT_MAX_CONNECTED_CLIENTS;
     private int gatewayAdvertiseTime = DEFAULT_GATEWAY_ADVERTISE_TIME;
     private int gatewayId = DEFAULT_GATEWAY_ID;
@@ -72,12 +92,10 @@ public final class MqttsnGatewayOptions extends MqttsnOptions {
     }
 
     public MqttsnGatewayOptions withAllowedClientId(String clientId){
-        if(allowedClientIds == null){
-            synchronized (this) {
-                if (allowedClientIds == null) {
-                    allowedClientIds = new HashSet();
-                }
-            }
+
+        //-- if the application specifies custom allow list, remove wildcard
+        if(allowedClientIds.contains(DEFAULT_CLIENT_ALLOWED_ALL)){
+            allowedClientIds.remove(DEFAULT_CLIENT_ALLOWED_ALL);
         }
         allowedClientIds.add(clientId);
         return this;
