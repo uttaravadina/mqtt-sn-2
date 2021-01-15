@@ -27,6 +27,8 @@ package org.slj.mqtt.sn.impl;
 import org.slj.mqtt.sn.model.IMqttsnContext;
 import org.slj.mqtt.sn.spi.*;
 import org.slj.mqtt.sn.model.MqttsnOptions;
+import org.slj.mqtt.sn.utils.StringTable;
+import org.slj.mqtt.sn.utils.StringTableWriters;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,6 +49,11 @@ public abstract class AbstractMqttsnRuntime {
     protected List<IMqttsnPublishSentListener> sentListeners
             = Collections.synchronizedList(new ArrayList<>());
 
+    protected List<IMqttsnService> activeServices
+            = Collections.synchronizedList(new ArrayList<>());
+
+    private ThreadGroup threadGroup = new ThreadGroup("mqtt-sn");
+    private Thread instrumentationThread;
     protected ExecutorService executorService;
     protected CountDownLatch startupLatch;
     protected volatile boolean running = false;
@@ -63,11 +70,9 @@ public abstract class AbstractMqttsnRuntime {
             executorService =
                     Executors.newFixedThreadPool(threadCount, new ThreadFactory() {
                         int count = 0;
-                        ThreadGroup tg = new ThreadGroup("mqtt-sn-worker");
-
                         @Override
                         public Thread newThread(Runnable r) {
-                            Thread t = new Thread(tg, r, "mqtt-sn-worker-thread-" + ++count);
+                            Thread t = new Thread(threadGroup, r, "mqtt-sn-worker-thread-" + ++count);
                             t.setPriority(Thread.MIN_PRIORITY + 1);
                             t.setDaemon(true);
                             return t;
@@ -83,6 +88,9 @@ public abstract class AbstractMqttsnRuntime {
             bindShutdownHook();
             logger.log(Level.INFO, "starting mqttsn-environment..");
             startupServices(registry);
+            if(registry.getOptions().isInstrumentationEnabled()){
+                initInstrumentation();
+            }
             startupLatch.countDown();
             logger.log(Level.INFO, String.format("mqttsn-environment started successfully in [%s]", System.currentTimeMillis() - startedAt));
             if(join){
@@ -125,19 +133,47 @@ public abstract class AbstractMqttsnRuntime {
         }
     }
 
+    protected void initInstrumentation(){
+        if(instrumentationThread != null){
+            instrumentationThread = new Thread(getThreadGroup(), () -> {
+                try {
+                   logger.log(Level.INFO, "mqttsn-environment started instrumentation thread");
+                   while(running){
+                       synchronized (instrumentationThread){
+                           instrumentationThread.wait(registry.getOptions().getInstrumentationInterval());
+                           activeServices.stream().
+                                   filter(s -> s instanceof IMqttsnInstrumentationProvider).
+                                    map(s -> (IMqttsnInstrumentationProvider) s).forEach(s -> {
+                                        StringTable st = s.provideInstrumentation();
+                                        if(st != null){
+                                            logger.log(Level.INFO, StringTableWriters.writeStringTableAsASCII(st));
+                                        }
+                           });
+                       }
+                   }
+                }
+                catch(InterruptedException e){
+                    Thread.currentThread().interrupt();
+                }
+                catch(Exception e){
+                    logger.log(Level.SEVERE, "encountered error tracking instrumentation;", e);
+                }
+            }, "mqtt-sn-instrumentation");
+            instrumentationThread.setDaemon(true);
+            instrumentationThread.setPriority(Thread.MIN_PRIORITY);
+            instrumentationThread.start();
+        }
+    }
+
     protected void bindShutdownHook(){
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        Runtime.getRuntime().addShutdownHook(new Thread(getThreadGroup(), () -> {
             try {
                 AbstractMqttsnRuntime.this.stop();
             } catch(Exception e){
                 logger.log(Level.SEVERE, "encountered error executing shutdown hook", e);
             }
-        }));
+        }, "mqtt-sn-finalizer"));
     }
-
-    protected abstract void startupServices(IMqttsnRuntimeRegistry runtime) throws MqttsnException;
-
-    protected abstract void stopServices(IMqttsnRuntimeRegistry runtime) throws MqttsnException;
 
     protected final void callStartup(Object service) throws MqttsnException {
         if(service instanceof IMqttsnService){
@@ -145,6 +181,7 @@ public abstract class AbstractMqttsnRuntime {
             if(!snService.running()){
                 logger.log(Level.INFO, String.format("starting [%s]", service.getClass().getName()));
                 snService.start(registry);
+                activeServices.add(snService);
             }
         }
     }
@@ -155,6 +192,7 @@ public abstract class AbstractMqttsnRuntime {
             if(snService.running()){
                 logger.log(Level.INFO, String.format("stopping [%s]", service.getClass().getName()));
                 snService.stop();
+                activeServices.remove(snService);
             }
         }
     }
@@ -167,8 +205,6 @@ public abstract class AbstractMqttsnRuntime {
     }
 
     protected void setupEnvironment(){
-//        System.setProperty("java.util.logging.ConsoleHandler.level", "INFO");
-//        System.setProperty("java.util.logging.ConsoleHandler.formatter", "java.util.logging.SimpleFormatter");
         System.setProperty("java.util.logging.SimpleFormatter.format", "[%1$tc] %4$s %2$s - %5$s %6$s%n");
     }
 
@@ -217,4 +253,15 @@ public abstract class AbstractMqttsnRuntime {
     public Future<?> async(Runnable r){
         return executorService.submit(r);
     }
+
+    /**
+     * @return - The thread group for this runtime
+     */
+    public ThreadGroup getThreadGroup(){
+        return threadGroup;
+    }
+
+    protected abstract void startupServices(IMqttsnRuntimeRegistry runtime) throws MqttsnException;
+
+    protected abstract void stopServices(IMqttsnRuntimeRegistry runtime) throws MqttsnException;
 }

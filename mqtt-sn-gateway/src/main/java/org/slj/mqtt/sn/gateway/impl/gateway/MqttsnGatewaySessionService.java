@@ -330,4 +330,9 @@ public class MqttsnGatewaySessionService extends AbstractMqttsnBackoffThreadServ
         cal.add(Calendar.YEAR, 1);
         return cal.getTime();
     }
+
+    @Override
+    protected String getDaemonName() {
+        return "gateway-session";
+    }
 }

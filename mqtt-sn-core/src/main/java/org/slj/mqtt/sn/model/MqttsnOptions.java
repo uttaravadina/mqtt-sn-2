@@ -54,9 +54,9 @@ public class MqttsnOptions {
     public static final boolean DEFAULT_THREAD_HANDOFF_ENABLED = true;
 
     /**
-     * When thread hand off is enabled, the default number of processing threads is 5
+     * When thread hand off is enabled, the default number of processing threads is 1
      */
-    public static final int DEFAULT_HANDOFF_THREAD_COUNT = 5;
+    public static final int DEFAULT_HANDOFF_THREAD_COUNT = 1;
 
     /**
      * By default, 128 topics can reside in any 1 client registry
@@ -133,6 +133,21 @@ public class MqttsnOptions {
      */
     public static final int DEFAULT_PING_DIVISOR = 4;
 
+    /**
+     * By default instrumentation is switched off
+     */
+    public static final boolean DEFAULT_INSTRUMENTATION_ENABLED = false;
+
+    /**
+     * The default instrumentation interval is 60000 (60 seconds)
+     */
+    public static final int DEFAULT_INSTRUMENTATION_INTERVAL = 60000;
+
+    /**
+     * The default max protocol message size (including header and data) is 1024 bytes
+     */
+    public static final int DEFAULT_MAX_PROTOCOL_SIZE = 1024;
+
     private String contextId;
     private boolean threadHandoffFromTransport = DEFAULT_THREAD_HANDOFF_ENABLED;
     private boolean enableDiscovery = DEFAULT_DISCOVERY_ENABLED;
@@ -152,6 +167,9 @@ public class MqttsnOptions {
     private int searchGatewayRadius = DEFAULT_SEARCH_GATEWAY_RADIUS;
     private int discoveryTime = DEFAULT_DISCOVERY_TIME_SECONDS;
     private int pingDivisor = DEFAULT_PING_DIVISOR;
+    private boolean instrumentationEnabled = DEFAULT_INSTRUMENTATION_ENABLED;
+    private int instrumentationInterval = DEFAULT_INSTRUMENTATION_INTERVAL;
+    private int maxProtocolMessageSize = DEFAULT_MAX_PROTOCOL_SIZE;
 
     private Map<String, Integer> predefinedTopics;
     private Map<String, NetworkAddress> networkAddressEntries;
@@ -458,6 +476,43 @@ public class MqttsnOptions {
     }
 
     /**
+     * Should instrumentation be enabled. When enabled the runtime will call registered instrumentation
+     * providers on the {@link MqttsnOptions#getInstrumentationInterval} period and output the data
+     * to the standard logging.
+     *
+     * @param instrumentationEnabled - Should instrumentation be enabled
+     * @return this configuration
+     */
+    public MqttsnOptions withInstrumentationEnabled(boolean instrumentationEnabled){
+        this.instrumentationEnabled = instrumentationEnabled;
+        return this;
+    }
+
+    /**
+     * The interval between instrumentation sampling when it is enabled.
+     *
+     * @param instrumentationInterval The interval between instrumentation sampling when it is enabled.
+     * @return this configuration
+     */
+    public MqttsnOptions withInstrumentationInterval(int instrumentationInterval){
+        this.instrumentationInterval = instrumentationInterval;
+        return this;
+    }
+
+    /**
+     * The max allowable size of protocol messages that will be sent or received by the system.
+     * NOTE: this differs from transport level max sizes which will be deterimed and constrained by the
+     * MTU of the transport
+     *
+     * @param maxProtocolMessageSize - The max allowable size of protocol messages.
+     * @return this configuration
+     */
+    public MqttsnOptions withMaxProtocolMessageSize(int maxProtocolMessageSize){
+        this.maxProtocolMessageSize = maxProtocolMessageSize;
+        return this;
+    }
+
+    /**
      * Sets the locations of known clients or gateways on the network. When running as a client and discovery is not enabled,
      * it is mandatory that at least 1 gateway entry be supplied, which will be the gateway the client talks to. In gateway
      * mode, the registry is populated dynamically.
@@ -521,20 +576,12 @@ public class MqttsnOptions {
         return maxMessagesInflight;
     }
 
-    public boolean getRequeueOnInflightTimeout() {
-        return requeueOnInflightTimeout;
-    }
-
     public int getMaxMessagesInQueue() {
         return maxMessagesInQueue;
     }
 
     public int getMaxWait() {
         return maxWait;
-    }
-
-    public boolean getThreadHandoffFromTransport() {
-        return threadHandoffFromTransport;
     }
 
     public int getHandoffThreadCount() {
@@ -559,5 +606,25 @@ public class MqttsnOptions {
 
     public int getPingDivisor() {
         return pingDivisor;
+    }
+
+    public boolean isInstrumentationEnabled() {
+        return instrumentationEnabled;
+    }
+
+    public int getInstrumentationInterval() {
+        return instrumentationInterval;
+    }
+
+    public boolean isThreadHandoffFromTransport() {
+        return threadHandoffFromTransport;
+    }
+
+    public boolean isRequeueOnInflightTimeout() {
+        return requeueOnInflightTimeout;
+    }
+
+    public int getMaxProtocolMessageSize() {
+        return maxProtocolMessageSize;
     }
 }

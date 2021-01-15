@@ -63,11 +63,11 @@ public class MqttsnUdpTransport extends AbstractMqttsnUdpTransport {
         int bufferSize = options.getReceiveBuffer();
         socket = options.getPort() > 0 ? new DatagramSocket(options.getPort()) : new DatagramSocket();
         //-- by default we do not set SoTimeout (infinite) which will block until recieve
-        receiverThread = createDatagramServer("mqttsn-udp-receiver", bufferSize, socket);
+        receiverThread = createDatagramServer("mqtt-sn-udp-receiver", bufferSize, socket);
         if(options.getBindBroadcastListener() && registry.getOptions().isEnableDiscovery()) {
             broadcastSocket = options.getBroadcastPort() > 0 ? new DatagramSocket(options.getBroadcastPort()) : new DatagramSocket();
             broadcastSocket.setBroadcast(true);
-            broadcastThread = createDatagramServer("mqttsn-udp-broadcast", bufferSize, broadcastSocket);
+            broadcastThread = createDatagramServer("mqtt-sn-udp-broadcast", bufferSize, broadcastSocket);
         }
     }
 

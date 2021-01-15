@@ -479,7 +479,7 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
                         logger.log(Level.SEVERE, "error on connection manager thread", e);
                     }
                 }
-            });
+            }, "mqtt-sn-managed-connection");
             managedConnectionThread.setPriority(Thread.MIN_PRIORITY);
             managedConnectionThread.setDaemon(true);
             managedConnectionThread.start();

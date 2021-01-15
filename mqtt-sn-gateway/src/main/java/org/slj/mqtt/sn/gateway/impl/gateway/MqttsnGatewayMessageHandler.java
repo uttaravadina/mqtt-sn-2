@@ -188,8 +188,18 @@ public class MqttsnGatewayMessageHandler
         if(MqttsnUtils.in(state.getClientState(), MqttsnClientState.ASLEEP, MqttsnClientState.AWAKE)){
             //-- only wake the client if there is messages outstanding
             if(registry.getMessageQueue().size(context) > 0){
-                registry.getGatewaySessionService().wake(state);
-                registry.getMessageStateService().scheduleFlush(context);
+                if(state.getClientState() == MqttsnClientState.ASLEEP){
+                    //-- this is the waking ping.. all is ok
+                    registry.getGatewaySessionService().wake(state);
+                    registry.getMessageStateService().scheduleFlush(context);
+
+                } else if(state.getClientState() == MqttsnClientState.AWAKE){
+                    //-- this is the client issuing multiple pings when it should be waiting on the messages.. humph
+                    logger.log(Level.INFO, "multiple pings are being sent, clear up and try again the client is getting confused..");
+                    registry.getMessageStateService().clearInflight(context);
+                    registry.getMessageStateService().scheduleFlush(context);
+                }
+
                 return null;
             } else {
                 return super.handlePingreq(context, message);

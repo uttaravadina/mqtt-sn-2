@@ -114,4 +114,9 @@ public class MqttsnInMemoryMessageStateService <T extends IMqttsnRuntimeRegistry
         }
         return map;
     }
+
+    @Override
+    protected String getDaemonName() {
+        return "message-state";
+    }
 }

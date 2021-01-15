@@ -126,4 +126,9 @@ public class MqttsnAggregatingBrokerService extends AbstractMqttsnBrokerService 
         }
         this.connection = null;
     }
+
+    @Override
+    protected String getDaemonName() {
+        return "gateway-broker-managed-connection";
+    }
 }

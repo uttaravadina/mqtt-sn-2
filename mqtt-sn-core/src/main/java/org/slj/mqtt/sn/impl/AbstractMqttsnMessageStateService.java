@@ -223,9 +223,9 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
 
         Integer msgId = message.needsMsgId() ? message.getMsgId() : WEAK_ATTACH_ID;
         boolean matchedMessage = inflightExists(context, msgId);
+        boolean terminalMessage = registry.getMessageHandler().isTerminalMessage(message);
         if (matchedMessage) {
-            if (registry.getMessageHandler().isTerminalMessage(message)) {
-
+            if (terminalMessage) {
                 InflightMessage inflight = removeInflight(context, msgId);
                 if (!registry.getMessageHandler().validResponse(inflight.getMessage(), message.getClass())) {
                     logger.log(Level.WARNING,
@@ -444,7 +444,8 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         if(inflight instanceof RequeueableInflightMessage){
             RequeueableInflightMessage requeueableInflightMessage = (RequeueableInflightMessage) inflight;
             if(registry.getMessageQueue() != null &&
-                    registry.getOptions().getRequeueOnInflightTimeout() && requeueableInflightMessage.getQueuedPublishMessage() != null) {
+                    registry.getOptions().isRequeueOnInflightTimeout() &&
+                    requeueableInflightMessage.getQueuedPublishMessage() != null) {
                 logger.log(Level.INFO, String.format("re-queuing publish message [%s] for client [%s]", context,
                         inflight.getMessage()));
                 registry.getMessageQueue().offer(context, requeueableInflightMessage.getQueuedPublishMessage());

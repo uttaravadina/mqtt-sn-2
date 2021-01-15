@@ -69,4 +69,9 @@ public class MqttsnGatewayAdvertiseService extends AbstractMqttsnBackoffThreadSe
             return false;
         }
     }
+
+    @Override
+    protected String getDaemonName() {
+        return "gateway-advertise";
+    }
 }

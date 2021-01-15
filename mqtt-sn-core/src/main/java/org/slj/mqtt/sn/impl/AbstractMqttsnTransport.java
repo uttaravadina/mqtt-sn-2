@@ -45,7 +45,7 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
 
     @Override
     public void receiveFromTransport(INetworkContext context, ByteBuffer buffer) {
-        if(registry.getOptions().getThreadHandoffFromTransport()){
+        if(registry.getOptions().isThreadHandoffFromTransport()){
             getRegistry().getRuntime().async(
                     () -> receiveFromTransportInternal(context, buffer));
         } else {
@@ -59,6 +59,12 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
                 return;
             }
             byte[] data = drain(buffer);
+
+            if(data.length > registry.getOptions().getMaxProtocolMessageSize()){
+                logger.log(Level.SEVERE, String.format("receiving [%s] bytes - max allowed message size [%s] - error",
+                        data.length, registry.getOptions().getMaxProtocolMessageSize()));
+                throw new MqttsnRuntimeException("received message was larger than allowed max");
+            }
 
             IMqttsnMessage message = getRegistry().getCodec().decode(data);
 
@@ -88,7 +94,7 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
 
     @Override
     public void writeToTransport(INetworkContext context, IMqttsnMessage message) {
-        if(registry.getOptions().getThreadHandoffFromTransport()){
+        if(registry.getOptions().isThreadHandoffFromTransport()){
             getRegistry().getRuntime().async(
                     () -> writeToTransportInternal(context, message, true));
         } else {
@@ -99,6 +105,13 @@ public abstract class AbstractMqttsnTransport<U extends IMqttsnRuntimeRegistry>
     protected void writeToTransportInternal(INetworkContext context, IMqttsnMessage message, boolean notifyListeners){
         try {
             byte[] data = registry.getCodec().encode(message);
+
+            if(data.length > registry.getOptions().getMaxProtocolMessageSize()){
+                logger.log(Level.SEVERE, String.format("cannot send [%s] bytes - max allowed message size [%s]",
+                        data.length, registry.getOptions().getMaxProtocolMessageSize()));
+                throw new MqttsnRuntimeException("cannot send messages larger than allowed max");
+            }
+
             logger.log(Level.INFO, String.format("writing [%s] bytes (%s) to [%s] on thread [%s]",
                     data.length, message.getMessageName(), context, Thread.currentThread().getName()));
 

@@ -46,8 +46,10 @@ public abstract class AbstractMqttsnBackoffThreadService<T extends IMqttsnRuntim
 
     protected void initThread(){
         if(t == null){
-            String threadName = String.format("mqtt-sn-deamon-%s", getClass().getSimpleName().toLowerCase());
-            t = new Thread(this, threadName);
+            String name = getDaemonName();
+            name = name == null ? getClass().getSimpleName().toLowerCase() : name;
+            String threadName = String.format("mqtt-sn-deamon-%s", name);
+            t = new Thread(registry.getRuntime().getThreadGroup(), this, threadName);
             t.setPriority(Thread.MIN_PRIORITY);
             t.setDaemon(true);
             t.start();
@@ -108,6 +110,12 @@ public abstract class AbstractMqttsnBackoffThreadService<T extends IMqttsnRuntim
      * WARNING, throwing an unchecked exception from this method will cause the service to shutdown
      */
     protected abstract boolean doWork();
+
+    /**
+     * The name of the deamon will be used in instrumentation and logging
+     * @return The name of your deamon process
+     */
+    protected abstract String getDaemonName();
 
     protected void expedite(){
         synchronized (monitor){
