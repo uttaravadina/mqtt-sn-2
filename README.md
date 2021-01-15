@@ -81,7 +81,7 @@ sleepClearsRegistrations  | true | boolean | When a client enters the ASLEEP sta
 minFlushTime  | 1000 | int | Time in milliseconds between a gateway device last receiving a message before it begins processing the client queue
 discoveryTime  | 3600 | int | The time (in seconds) a client will wait for a broadcast during CONNECT before giving up
 pingDivisor  | 4 | int | The divisor to use for the ping window, the dividend being the CONNECT keepAlive resulting in the quotient which is the time (since last sent message) each ping will be issued
-maxProtocolMessageSize | 1024 | int | he max allowable size of protocol messages that will be sent or received by the system. **NOTE: this differs from transport level max sizes which will be deterimed and constrained by the MTU of the transport**
+maxProtocolMessageSize | 1024 | int | The max allowable size of protocol messages that will be sent or received by the system. **NOTE: this differs from transport level max sizes which will be deterimed and constrained by the MTU of the transport**
 ### Runtime
 
 You can hook into the runtime and provide your own implementations of various components or bind in listeners to give you control or visibility onto aspects of the system.
