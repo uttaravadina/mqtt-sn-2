@@ -60,10 +60,10 @@ public interface IMqttsnMessageQueue<T extends IMqttsnRuntimeRegistry> extends I
      * Offer the queue or a context a new message to add to the tail.
      * @param context  - the context whose queue youd like to append
      * @param message - the message metadata to queue
-     * @return - true if the message was added, false if it was not
-     * @throws MqttsnException - an error occurred
+     * @return - token if the message was added
+     * @throws MqttsnException - an error occurred, most likely the queue was full
      */
-    boolean offer(IMqttsnContext context, QueuedPublishMessage message) throws MqttsnException;
+    MqttsnWaitToken offer(IMqttsnContext context, QueuedPublishMessage message) throws MqttsnException;
 
     /**
      * Pop a message from the head of the queue. This removes and returns the message at the Head.

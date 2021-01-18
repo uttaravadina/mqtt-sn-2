@@ -53,18 +53,20 @@ public class MqttsnInMemoryMessageQueue<T extends IMqttsnRuntimeRegistry>
     }
 
     @Override
-    public boolean offer(IMqttsnContext context, QueuedPublishMessage message) throws MqttsnException {
+    public MqttsnWaitToken offer(IMqttsnContext context, QueuedPublishMessage message) throws MqttsnException {
         Queue<QueuedPublishMessage> queue = getQueue(context);
         if(size(context) >= getMaxQueueSize()){
             logger.log(Level.WARNING, String.format("max queue size reached for client [%s] >= [%s]", context, queue.size()));
-            return false;
+            throw new MqttsnExpectationFailedException("max queue size reached for client");
         }
         boolean b;
         synchronized (queue){
             b = queue.offer(message);
         }
         logger.log(Level.INFO, String.format("offered message to queue [%s] for [%s], queue size is [%s]", b, context, queue.size()));
-        return b;
+        MqttsnWaitToken token = MqttsnWaitToken.from(message);
+        message.setToken(token);
+        return token;
     }
 
     @Override

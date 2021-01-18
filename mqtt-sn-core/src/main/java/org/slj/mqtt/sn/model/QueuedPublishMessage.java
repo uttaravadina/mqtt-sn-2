@@ -41,6 +41,7 @@ public class QueuedPublishMessage implements Serializable {
     private int retryCount;
     private UUID messageId;
     private boolean retained;
+    private transient MqttsnWaitToken token;
 
     public QueuedPublishMessage() {
     }
@@ -94,6 +95,14 @@ public class QueuedPublishMessage implements Serializable {
 
     public void setRetryCount(int retryCount) {
         this.retryCount = retryCount;
+    }
+
+    public MqttsnWaitToken getToken() {
+        return token;
+    }
+
+    public void setToken(MqttsnWaitToken token) {
+        this.token = token;
     }
 
     @Override

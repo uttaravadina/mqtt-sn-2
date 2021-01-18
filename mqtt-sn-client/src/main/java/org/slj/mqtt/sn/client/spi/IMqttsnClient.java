@@ -24,11 +24,13 @@
 
 package org.slj.mqtt.sn.client.spi;
 
-import org.slj.mqtt.sn.spi.IMqttsnPublishReceivedListener;
-import org.slj.mqtt.sn.spi.IMqttsnPublishSentListener;
-import org.slj.mqtt.sn.spi.MqttsnException;
+import org.slj.mqtt.sn.model.IMqttsnContext;
+import org.slj.mqtt.sn.model.MqttsnWaitToken;
+import org.slj.mqtt.sn.spi.*;
+import org.slj.mqtt.sn.utils.MqttsnUtils;
 
 import java.io.Closeable;
+import java.util.Optional;
 
 /**
  * An SN client allows you to talk to a DISCOVERED or PRECONFIGURED Sensor Network gateway.
@@ -54,9 +56,15 @@ public interface IMqttsnClient extends Closeable {
      * @param topicName - The path to which you wish to send the data
      * @param QoS - Quality of Service of the method, one of -1, 0 , 1, 2
      * @param data - The data you wish to send
+     * @return token - a sending token that you can use to block on until the message has been sent
      * @throws MqttsnException
      */
-    void publish(String topicName, int QoS, byte[] data) throws MqttsnException;
+    MqttsnWaitToken publish(String topicName, int QoS, byte[] data) throws MqttsnException;
+
+    /**
+     * @see {@link IMqttsnMessageStateService#waitForCompletion}
+     */
+    Optional<IMqttsnMessage> waitForCompletion(MqttsnWaitToken token, int customWaitTime) throws MqttsnExpectationFailedException;
 
 
     /**

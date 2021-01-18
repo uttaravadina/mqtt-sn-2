@@ -162,9 +162,22 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
 
     @Override
     /**
+     * @see {@link IMqttsnClient#waitForCompletion(MqttsnWaitToken, int)}
+     */
+    public Optional<IMqttsnMessage> waitForCompletion(MqttsnWaitToken token, int customWaitTime) throws MqttsnExpectationFailedException {
+        synchronized (this){
+            Optional<IMqttsnMessage> response = registry.getMessageStateService().waitForCompletion(
+                    state.getContext(), token, customWaitTime);
+            MqttsnUtils.responseCheck(token, response);
+            return response;
+        }
+    }
+
+    @Override
+    /**
      * @see {@link IMqttsnClient#publish(String, int, byte[])}
      */
-    public void publish(String topicName, int QoS, byte[] data) throws MqttsnException{
+    public MqttsnWaitToken publish(String topicName, int QoS, byte[] data) throws MqttsnException{
         if(!MqttsnUtils.validQos(QoS)){
             throw new MqttsnExpectationFailedException("invalid QoS supplied");
         }
@@ -174,11 +187,9 @@ public class MqttsnClient extends AbstractMqttsnRuntime implements IMqttsnClient
 
         IMqttsnSessionState state = checkSession(QoS >= 0);
         UUID messageId = registry.getMessageRegistry().add(data, getMessageExpiry());
-        if(!registry.getMessageQueue().offer(state.getContext(),
+        return registry.getMessageQueue().offer(state.getContext(),
                 new QueuedPublishMessage(
-                        messageId, topicName, QoS))){
-            throw new MqttsnExpectationFailedException("publish queue was full, publish operation not added");
-        }
+                        messageId, topicName, QoS));
     }
 
     @Override

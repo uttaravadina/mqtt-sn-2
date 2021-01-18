@@ -358,7 +358,7 @@ public abstract class AbstractMqttsnMessageStateService <T extends IMqttsnRuntim
         }
 
         InflightMessage inflight = queuedPublishMessage == null ? new InflightMessage(message, direction, MqttsnWaitToken.from(message)) :
-                new RequeueableInflightMessage(queuedPublishMessage, message, MqttsnWaitToken.from(message));
+                new RequeueableInflightMessage(queuedPublishMessage, message);
 
         LastIdContext idContext = LastIdContext.from(context, direction);
         int msgId = WEAK_ATTACH_ID;
