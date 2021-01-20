@@ -27,6 +27,7 @@ package org.slj.mqtt.sn.wire.version1_2.payload;
 import org.slj.mqtt.sn.MqttsnConstants;
 import org.slj.mqtt.sn.codec.MqttsnCodecException;
 import org.slj.mqtt.sn.wire.MqttsnWireUtils;
+import org.slj.mqtt.sn.wire.version1_2.Mqttsn_v1_2_Codec;
 
 public class MqttsnRegister extends AbstractMqttsnMessage {
 
@@ -61,7 +62,7 @@ public class MqttsnRegister extends AbstractMqttsnMessage {
     @Override
     public void decode(byte[] data) throws MqttsnCodecException {
 
-        if (MqttsnWireUtils.isExtendedMessage(data)) {
+        if (Mqttsn_v1_2_Codec.isExtendedMessage(data)) {
             topicId = read16BitAdjusted(data, 4);
             msgId = read16BitAdjusted(data, 6);
         } else {

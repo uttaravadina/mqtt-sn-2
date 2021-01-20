@@ -27,6 +27,7 @@ package org.slj.mqtt.sn.wire.version1_2.payload;
 import org.slj.mqtt.sn.MqttsnConstants;
 import org.slj.mqtt.sn.codec.MqttsnCodecException;
 import org.slj.mqtt.sn.wire.MqttsnWireUtils;
+import org.slj.mqtt.sn.wire.version1_2.Mqttsn_v1_2_Codec;
 
 public abstract class AbstractMqttsnWillTopicMessage extends AbstractMqttsnMessageWithFlagsField {
 
@@ -42,7 +43,7 @@ public abstract class AbstractMqttsnWillTopicMessage extends AbstractMqttsnMessa
 
     @Override
     public void decode(byte[] data) throws MqttsnCodecException {
-        readFlags(MqttsnWireUtils.readHeaderByteWithOffset(data, 2));
+        readFlags(Mqttsn_v1_2_Codec.readHeaderByteWithOffset(data, 2));
         willTopicData = readRemainingBytesFromIndexAdjusted(data, 3);
     }
 

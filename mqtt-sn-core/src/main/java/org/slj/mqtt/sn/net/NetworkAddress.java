@@ -27,6 +27,7 @@ package org.slj.mqtt.sn.net;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.Objects;
 

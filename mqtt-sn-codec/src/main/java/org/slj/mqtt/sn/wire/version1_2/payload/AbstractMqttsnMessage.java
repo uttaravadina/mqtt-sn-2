@@ -28,6 +28,7 @@ import org.slj.mqtt.sn.MqttsnConstants;
 import org.slj.mqtt.sn.codec.MqttsnCodecException;
 import org.slj.mqtt.sn.spi.IMqttsnMessage;
 import org.slj.mqtt.sn.wire.MqttsnWireUtils;
+import org.slj.mqtt.sn.wire.version1_2.Mqttsn_v1_2_Codec;
 
 public abstract class AbstractMqttsnMessage implements IMqttsnMessage {
 
@@ -69,7 +70,7 @@ public abstract class AbstractMqttsnMessage implements IMqttsnMessage {
      * form for convenience but adjusted if the data is an extended type ie. > 255 bytes
      */
     protected byte[] readRemainingBytesFromIndexAdjusted(byte[] data, int headerSize) {
-        int offset = (MqttsnWireUtils.isExtendedMessage(data) ? headerSize + 2 : headerSize);
+        int offset = (Mqttsn_v1_2_Codec.isExtendedMessage(data) ? headerSize + 2 : headerSize);
         return readBytesFromIndexAdjusted(data, headerSize, data.length - offset);
     }
 
@@ -78,8 +79,8 @@ public abstract class AbstractMqttsnMessage implements IMqttsnMessage {
      * form for convenience but adjusted if the data is an extended type ie. > 255 bytes
      */
     protected byte[] readBytesFromIndexAdjusted(byte[] data, int headerSize, int length) {
-        int size = MqttsnWireUtils.readVariableMessageLength(data);
-        int offset = (MqttsnWireUtils.isExtendedMessage(data) ? headerSize + 2 : headerSize);
+        int size = Mqttsn_v1_2_Codec.readMessageLength(data);
+        int offset = (Mqttsn_v1_2_Codec.isExtendedMessage(data) ? headerSize + 2 : headerSize);
         byte[] msgData = new byte[length];
         System.arraycopy(data, offset, msgData, 0, length);
         return msgData;
@@ -90,7 +91,7 @@ public abstract class AbstractMqttsnMessage implements IMqttsnMessage {
      * data is an extended type ie. > 255 bytes)
      */
     protected int read8BitAdjusted(byte[] data, int startIdx) {
-        return MqttsnWireUtils.read8bit(MqttsnWireUtils.readHeaderByteWithOffset(data, startIdx));
+        return MqttsnWireUtils.read8bit(Mqttsn_v1_2_Codec.readHeaderByteWithOffset(data, startIdx));
     }
 
     /**
@@ -99,8 +100,8 @@ public abstract class AbstractMqttsnMessage implements IMqttsnMessage {
      */
     protected int read16BitAdjusted(byte[] data, int startIdx) {
         return MqttsnWireUtils.read16bit(
-                MqttsnWireUtils.readHeaderByteWithOffset(data, startIdx),
-                MqttsnWireUtils.readHeaderByteWithOffset(data, startIdx + 1));
+                Mqttsn_v1_2_Codec.readHeaderByteWithOffset(data, startIdx),
+                Mqttsn_v1_2_Codec.readHeaderByteWithOffset(data, startIdx + 1));
     }
 
     public String getMessageName() {

@@ -50,42 +50,12 @@ public class MqttsnWireUtils {
         }
     }
 
-    public static int readMessageType(byte[] data) {
-        int msgType;
-        if (MqttsnWireUtils.isExtendedMessage(data)) {
-            msgType = (data[3] & 0xFF);
-        } else {
-            msgType = (data[1] & 0xFF);
-        }
-        return msgType;
-    }
-
-    public static byte readHeaderByteWithOffset(byte[] data, int index) {
-        return isExtendedMessage(data) ? data[index + 2] : data[index];
-    }
-
     public static int read8bit(byte b1) {
         return (b1 & 0xFF);
     }
 
     public static int read16bit(byte b1, byte b2) {
         return ((b1 & 0xFF) << 8) + (b2 & 0xFF);
-    }
-
-    public static boolean isExtendedMessage(byte[] data) {
-        return data[0] == 0x01;
-    }
-
-    public static int readVariableMessageLength(byte[] data) {
-        int length = 0;
-        if (isExtendedMessage(data)) {
-            //big payload
-            length = ((data[1] & 0xFF) << 8) + (data[2] & 0xFF);
-        } else {
-            //small payload
-            length = (data[0] & 0xFF);
-        }
-        return length;
     }
 
     public static String toBinary(byte... b) {

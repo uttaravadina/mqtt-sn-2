@@ -35,13 +35,20 @@ public class Mqttsn_v1_2_Codec extends AbstractMqttsnCodec {
 
     protected IMqttsnMessageFactory messageFactory;
 
+    @Override
+    public int readMessageSize(byte[] data) throws MqttsnCodecException {
+        if (data == null || data.length == 0)
+            throw new MqttsnCodecException("malformed mqtt-sn packet, need at least 1 byte for sizing");
+        return readMessageLength(data);
+    }
+
     protected AbstractMqttsnMessage createInstance(byte[] data) throws MqttsnCodecException {
 
         if (data == null || data.length < 2)
             throw new MqttsnCodecException("malformed mqtt-sn packet");
 
         AbstractMqttsnMessage msg = null;
-        int msgType = MqttsnWireUtils.readMessageType(data);
+        int msgType = readMessageType(data);
 
         switch (msgType) {
             case MqttsnConstants.ADVERTISE:
@@ -161,6 +168,36 @@ public class Mqttsn_v1_2_Codec extends AbstractMqttsnCodec {
                 throw new MqttsnCodecException(String.format("unknown message type [%s]", msgType));
         }
         return msg;
+    }
+
+    public static int readMessageType(byte[] data) {
+        int msgType;
+        if (isExtendedMessage(data)) {
+            msgType = (data[3] & 0xFF);
+        } else {
+            msgType = (data[1] & 0xFF);
+        }
+        return msgType;
+    }
+
+    public static byte readHeaderByteWithOffset(byte[] data, int index) {
+        return isExtendedMessage(data) ? data[index + 2] : data[index];
+    }
+
+    public static boolean isExtendedMessage(byte[] data) {
+        return data[0] == 0x01;
+    }
+
+    public static int readMessageLength(byte[] data) {
+        int length = 0;
+        if (isExtendedMessage(data)) {
+            //big payload
+            length = ((data[1] & 0xFF) << 8) + (data[2] & 0xFF);
+        } else {
+            //small payload
+            length = (data[0] & 0xFF);
+        }
+        return length;
     }
 
     @Override

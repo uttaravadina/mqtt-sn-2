@@ -28,6 +28,7 @@ import org.slj.mqtt.sn.MqttsnConstants;
 import org.slj.mqtt.sn.codec.MqttsnCodecException;
 import org.slj.mqtt.sn.spi.IMqttsnIdentificationPacket;
 import org.slj.mqtt.sn.wire.MqttsnWireUtils;
+import org.slj.mqtt.sn.wire.version1_2.Mqttsn_v1_2_Codec;
 
 /**
  * NB: despite the spec only allowing 23 chars in the clientId field, this type has been designed safely to support
@@ -76,7 +77,7 @@ public class MqttsnConnect extends AbstractMqttsnMessageWithFlagsField implement
     @Override
     public void decode(byte[] data) throws MqttsnCodecException {
 
-        if (MqttsnWireUtils.isExtendedMessage(data)) {
+        if (Mqttsn_v1_2_Codec.isExtendedMessage(data)) {
             readFlags(data[4]);
         } else {
             readFlags(data[2]);

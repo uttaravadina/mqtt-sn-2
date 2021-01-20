@@ -19,3 +19,8 @@ target/
 /mqtt-sn-client/mqtt-sn-client.iml
 /mqtt-sn-client/src/main/java/org/slj/mqtt/sn/client/impl/TMain.java
 /mqtt-sn-client/src/main/java/org/slj/mqtt/sn/client/impl/LMain.java
+/mqtt-publisher/
+/mqtt-sn-client/src/main/java/org/slj/mqtt/sn/client/impl/LTCPMain.java
+/mqtt-sn-core/ext/my-keystore.jks
+/mqtt-sn-core/ext/my-truststore.jks
+/mqtt-sn-gateway-artefact/src/main/java/org/slj/mqtt/sn/gateway/impl/TcpGatewayMain.java

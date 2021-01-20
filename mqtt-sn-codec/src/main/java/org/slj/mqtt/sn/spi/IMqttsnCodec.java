@@ -64,4 +64,10 @@ public interface IMqttsnCodec {
      * that hide the complexity of the underlying wire format
      */
     IMqttsnMessageFactory createMessageFactory();
+
+    /**
+     * Using the first few bytes of a message, determine the length of the full message,
+     * for use with stream reading
+     */
+    int readMessageSize(byte[] arr) throws MqttsnCodecException;
 }

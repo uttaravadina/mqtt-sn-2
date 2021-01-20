@@ -27,6 +27,7 @@ package org.slj.mqtt.sn.wire.version1_2.payload;
 import org.slj.mqtt.sn.MqttsnConstants;
 import org.slj.mqtt.sn.codec.MqttsnCodecException;
 import org.slj.mqtt.sn.wire.MqttsnWireUtils;
+import org.slj.mqtt.sn.wire.version1_2.Mqttsn_v1_2_Codec;
 
 import java.util.Arrays;
 
@@ -53,7 +54,7 @@ public class MqttsnPublish extends AbstractMqttsnMessageWithTopicData {
 
     @Override
     public void decode(byte[] arr) throws MqttsnCodecException {
-        readFlags(MqttsnWireUtils.readHeaderByteWithOffset(arr, 2));
+        readFlags(Mqttsn_v1_2_Codec.readHeaderByteWithOffset(arr, 2));
         setTopicData(readBytesFromIndexAdjusted(arr, 3, 2));
         msgId = read16BitAdjusted(arr, 5);
         data = readRemainingBytesFromIndexAdjusted(arr, 7);
