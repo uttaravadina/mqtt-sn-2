@@ -381,7 +381,6 @@ public class MqttsnTcpTransport
         }
 
         public void close() throws IOException {
-            logger.log(Level.INFO, String.format("handler is closing [%s]", descriptor));
             descriptor.close();
             if(listener != null) listener.closed(this);
         }
@@ -430,7 +429,7 @@ public class MqttsnTcpTransport
             }
             catch(SocketException e){
                 //-- socket close from underneath during reading
-                logger.log(Level.INFO, String.format("socket closed [%s], nothing to read", descriptor));
+                logger.log(Level.FINE, String.format("socket error [%s]", descriptor), e);
             }
             catch(IOException e){
                 throw new RuntimeException("error accepting data from client stream;",e);
@@ -466,16 +465,15 @@ public class MqttsnTcpTransport
 
         @Override
         public String toString() {
-            return "SocketDescriptor{" +
-                    "context=" + context +
-                    '}';
+            return Objects.toString(context);
         }
 
         @Override
         public synchronized void close() throws IOException {
             try {
                 if(!closed){
-                    connectionCount.decrementAndGet();
+                    int current = connectionCount.decrementAndGet();
+                    logger.log(Level.INFO, String.format("closing socket [%s], activeConnection(s) [%s]", this, current));
                     closed = true;
                     try {is.close();} catch(Exception e){}
                     try {os.close();} catch(Exception e){}
