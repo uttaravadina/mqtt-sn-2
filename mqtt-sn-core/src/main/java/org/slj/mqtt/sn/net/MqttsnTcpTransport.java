@@ -44,6 +44,10 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
+/**
+ * TCP IP implementation support. Can be run with SSL (TLS) enabled for secure communication.
+ * Supports running in both client and server mode.
+ */
 public class MqttsnTcpTransport
         extends AbstractMqttsnTransport<IMqttsnRuntimeRegistry> {
 
@@ -470,28 +474,12 @@ public class MqttsnTcpTransport
         @Override
         public synchronized void close() throws IOException {
             try {
-                try {
-                    if(!closed){
-                        closed = true;
-                        is.close();
-                        connectionCount.decrementAndGet();
-                    }
-                }
-                catch(IOException e){
-                }
-                finally {
-                    try {
-                        os.close();
-                    }
-                    catch(IOException e){
-                    }
-                    finally {
-                        try {
-                            socket.close();
-                        }
-                        catch(IOException e){
-                        }
-                    }
+                if(!closed){
+                    connectionCount.decrementAndGet();
+                    closed = true;
+                    try {is.close();} catch(Exception e){}
+                    try {os.close();} catch(Exception e){}
+                    try {socket.close();} catch(Exception e){}
                 }
             } finally {
                 socket = null;
